@@ -1,0 +1,81 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [main, master]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: npm install
+
+      - name: 重建原生模块
+        run: npx electron-rebuild
+
+      - name: 构建应用
+        run: npm run build
+
+      - name: 验证构建产物
+        run: |
+          if (!(Test-Path "dist/main/main/index.js")) { throw "主进程构建产物缺失" }
+          if (!(Test-Path "dist/renderer/index.html")) { throw "渲染进程构建产物缺失" }
+          Write-Host "构建产物验证通过"
+
+      - name: 打包 Windows 安装程序
+        run: npx electron-builder --win --x64
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: KQQ-Audit-System-Windows
+          path: |
+            release/*.exe
+            release/*.yml
+          retention-days: 30
+
+  release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: KQQ-Audit-System-Windows
+          path: artifacts/
+
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.exe
+            artifacts/*.yml
+          generate_release_notes: true
+          draft: false
+          prerelease: false

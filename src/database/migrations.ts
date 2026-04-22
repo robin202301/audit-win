@@ -1,0 +1,144 @@
+import { Database } from 'sqlite';
+
+export async function runMigrations(db: Database): Promise<void> {
+  // 项目表
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS projects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      audited_unit TEXT NOT NULL DEFAULT '',
+      audit_type TEXT NOT NULL DEFAULT '经济责任审计',
+      status TEXT NOT NULL DEFAULT 'draft',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  // 阶段进度表
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS stage_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      stage TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'not_started',
+      data_json TEXT NOT NULL DEFAULT '{}',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      UNIQUE(project_id, stage)
+    );
+  `);
+
+  // 取证单表
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS evidence_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      serial_number TEXT NOT NULL DEFAULT '',
+      project_name TEXT NOT NULL DEFAULT '',
+      audited_unit TEXT NOT NULL DEFAULT '',
+      matter_summary TEXT NOT NULL DEFAULT '',
+      evidence_content TEXT NOT NULL DEFAULT '',
+      legal_basis TEXT NOT NULL DEFAULT '',
+      auditor_name TEXT NOT NULL DEFAULT '',
+      compile_date TEXT NOT NULL DEFAULT '',
+      provider_opinion TEXT NOT NULL DEFAULT '',
+      provider_signature TEXT NOT NULL DEFAULT '',
+      feedback_deadline TEXT NOT NULL DEFAULT '',
+      attachment_paths TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
+  // 底稿表
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS working_papers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      index_number TEXT NOT NULL DEFAULT '',
+      project_name TEXT NOT NULL DEFAULT '',
+      audit_matter TEXT NOT NULL DEFAULT '',
+      auditor_name TEXT NOT NULL DEFAULT '',
+      compile_date TEXT NOT NULL DEFAULT '',
+      audit_process TEXT NOT NULL DEFAULT '',
+      fact_summary TEXT NOT NULL DEFAULT '',
+      audit_conclusion TEXT NOT NULL DEFAULT '',
+      reviewer_opinion TEXT NOT NULL DEFAULT '',
+      reviewer_name TEXT NOT NULL DEFAULT '',
+      review_date TEXT NOT NULL DEFAULT '',
+      attachment_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
+  // 调查记录表
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS survey_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      unit_name TEXT NOT NULL DEFAULT '',
+      unit_nature TEXT NOT NULL DEFAULT '',
+      legal_representative TEXT NOT NULL DEFAULT '',
+      supervising_unit TEXT NOT NULL DEFAULT '',
+      staff_quota INTEGER NOT NULL DEFAULT 0,
+      current_staff_count INTEGER NOT NULL DEFAULT 0,
+      org_structure TEXT NOT NULL DEFAULT '',
+      responsibility_scope TEXT NOT NULL DEFAULT '',
+      law_execution TEXT NOT NULL DEFAULT '',
+      financial_system TEXT NOT NULL DEFAULT '',
+      performance_indicators TEXT NOT NULL DEFAULT '',
+      internal_control TEXT NOT NULL DEFAULT '',
+      info_systems TEXT NOT NULL DEFAULT '',
+      economic_environment TEXT NOT NULL DEFAULT '',
+      previous_audit TEXT NOT NULL DEFAULT '',
+      other_info TEXT NOT NULL DEFAULT '',
+      filler_name TEXT NOT NULL DEFAULT '',
+      fill_date TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
+  // 文件附件表
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS file_attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id INTEGER NOT NULL,
+      file_path TEXT NOT NULL,
+      file_name TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      file_size INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
+  // 初始化项目阶段记录
+  await db.exec(`
+    CREATE TRIGGER IF NOT EXISTS init_stage_progress
+    AFTER INSERT ON projects
+    BEGIN
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'notice', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'survey', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'plan', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'evidence', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'working_paper', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'report', 'not_started');
+    END;
+  `);
+
+  // 自动更新 updated_at
+  await db.exec(`
+    CREATE TRIGGER IF NOT EXISTS update_project_timestamp
+    AFTER UPDATE ON projects
+    BEGIN
+      UPDATE projects SET updated_at = datetime('now') WHERE id = NEW.id;
+    END;
+  `);
+}

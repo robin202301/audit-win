@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": "dist/main",
+    "rootDir": "src",
+    "noEmit": false,
+    "declaration": false,
+    "paths": {
+      "@database/*": ["src/database/*"],
+      "@shared/*": ["src/shared/*"],
+      "@main/*": ["src/main/*"],
+      "@preload/*": ["src/preload/*"]
+    },
+    "baseUrl": "."
+  },
+  "include": ["src/main/**/*.ts", "src/database/**/*.ts", "src/shared/**/*.ts", "src/preload/**/*.ts"],
+  "exclude": ["node_modules", "dist", "src/renderer"]
+}

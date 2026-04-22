@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "dist/renderer",
+    "rootDir": "src/renderer",
+    "noEmit": false,
+    "declaration": false,
+    "jsx": "preserve",
+    "paths": {
+      "@renderer/*": ["src/renderer/*"],
+      "@shared/*": ["src/shared/*"],
+      "@components/*": ["src/renderer/components/*"],
+      "@views/*": ["src/renderer/views/*"],
+      "@stores/*": ["src/renderer/stores/*"],
+      "@hooks/*": ["src/renderer/hooks/*"]
+    }
+  },
+  "include": ["src/renderer/**/*.ts", "src/renderer/**/*.d.ts", "src/renderer/**/*.vue", "src/shared/**/*.ts"],
+  "exclude": ["node_modules", "dist", "src/main", "src/database"]
+}

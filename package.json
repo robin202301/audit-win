@@ -1,0 +1,106 @@
+{
+  "name": "auditsystem-win",
+  "version": "0.1.0",
+  "description": "Desktop audit workflow management application",
+  "main": "dist/main/main/index.js",
+  "author": "AuditSystem Team",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:main && npm run build:renderer",
+    "build:main": "tsc -p tsconfig.main.json && tsc-alias -p tsconfig.main.json",
+    "build:renderer": "vite build",
+    "preview": "vite preview",
+    "start": "npm run electron:dev",
+    "electron:dev": "concurrently -k \"npm run dev\" \"tsc -p tsconfig.main.json -w\" \"tsc-alias -p tsconfig.main.json -w\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder",
+    "postinstall": "electron-rebuild",
+    "rebuild": "electron-rebuild"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.4.0",
+    "docxtemplater": "^3.42.0",
+    "electron-squirrel-startup": "^1.0.0",
+    "jszip-utils": "^0.1.0",
+    "mammoth": "^1.6.0",
+    "pinia": "^2.1.0",
+    "pizzip": "^3.1.0",
+    "postcss": "^8.4.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "tailwindcss": "^3.4.0",
+    "vue": "^3.4.0",
+    "vue-router": "^4.6.4",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.0.0",
+    "@types/node": "^20.0.0",
+    "@types/sqlite3": "^3.1.11",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "concurrently": "^8.0.0",
+    "cross-env": "^7.0.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0",
+    "electron-rebuild": "^3.2.9",
+    "tsc-alias": "^1.8.16",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "vue-tsc": "^1.8.0",
+    "wait-on": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.kqq.auditsystem",
+    "productName": "KQQ-Audit-System",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      "resources/templates/**/*"
+    ],
+    "nodeGypRebuild": false,
+    "npmRebuild": false,
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "**/sqlite3/**"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "public/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "public/icon.png",
+      "category": "Office"
+    },
+    "publish": {
+      "provider": "github"
+    }
+  }
+}
