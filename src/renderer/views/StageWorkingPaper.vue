@@ -3,11 +3,11 @@
     <div class="card mb-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold">审计底稿管理</h2>
-        <button class="btn-primary" @click="showForm = true">新增底稿</button>
+        <button class="btn-primary" @click="openForm">新增底稿</button>
       </div>
 
       <div v-if="loading" class="text-center py-4 text-gray-500">加载中...</div>
-      <div v-else-if="paperList.length === 0" class="text-center py-4 text-gray-400">暂无底稿</div>
+      <div v-else-if="paperList.length === 0" class="text-center py-4 text-gray-400">暂无底稿，点击上方"新增底稿"添加</div>
       <table v-else class="w-full text-sm">
         <thead class="bg-gray-50 border-b">
           <tr>
@@ -36,54 +36,53 @@
       </table>
     </div>
 
-    <!-- 底稿表单 -->
     <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-bold mb-4">{{ editingId ? '编辑底稿' : '新增底稿' }}</h3>
         <div class="grid gap-4 md:grid-cols-2">
           <div>
             <label class="label-base">索引号</label>
-            <input v-model="form.indexNumber" class="input-base" placeholder="请输入索引号" />
+            <input v-model="formData.indexNumber" class="input-base" placeholder="请输入索引号" />
           </div>
           <div>
             <label class="label-base">项目名称</label>
-            <input v-model="form.projectName" class="input-base" placeholder="请输入项目名称" />
+            <input v-model="formData.projectName" class="input-base" placeholder="请输入项目名称" />
           </div>
           <div class="md:col-span-2">
             <label class="label-base">审计（调查）事项</label>
-            <input v-model="form.auditMatter" class="input-base" placeholder="请输入审计事项" />
+            <input v-model="formData.auditMatter" class="input-base" placeholder="请输入审计事项" />
           </div>
           <div>
             <label class="label-base">审计人员</label>
-            <input v-model="form.auditorName" class="input-base" placeholder="请输入审计人员" />
+            <input v-model="formData.auditorName" class="input-base" placeholder="请输入审计人员" />
           </div>
           <div>
             <label class="label-base">编制日期</label>
-            <input v-model="form.compileDate" type="date" class="input-base" />
+            <input v-model="formData.compileDate" type="date" class="input-base" />
           </div>
           <div class="md:col-span-2">
             <label class="label-base">审计过程</label>
-            <textarea v-model="form.auditProcess" class="input-base" rows="4" placeholder="说明实施审计的主要步骤和方法、所取得的审计证据"></textarea>
+            <textarea v-model="formData.auditProcess" class="input-base" rows="4" placeholder="说明实施审计的主要步骤和方法、所取得的审计证据"></textarea>
           </div>
           <div class="md:col-span-2">
             <label class="label-base">审计认定的事实摘要</label>
-            <textarea v-model="form.factSummary" class="input-base" rows="3" placeholder="请输入审计认定的事实摘要"></textarea>
+            <textarea v-model="formData.factSummary" class="input-base" rows="3" placeholder="请输入审计认定的事实摘要"></textarea>
           </div>
           <div class="md:col-span-2">
             <label class="label-base">审计结论</label>
-            <textarea v-model="form.auditConclusion" class="input-base" rows="3" placeholder="请输入审计结论"></textarea>
+            <textarea v-model="formData.auditConclusion" class="input-base" rows="3" placeholder="请输入审计结论"></textarea>
           </div>
           <div>
             <label class="label-base">审核人员</label>
-            <input v-model="form.reviewerName" class="input-base" placeholder="请输入审核人员" />
+            <input v-model="formData.reviewerName" class="input-base" placeholder="请输入审核人员" />
           </div>
           <div>
             <label class="label-base">审核日期</label>
-            <input v-model="form.reviewDate" type="date" class="input-base" />
+            <input v-model="formData.reviewDate" type="date" class="input-base" />
           </div>
           <div class="md:col-span-2">
             <label class="label-base">审核意见</label>
-            <select v-model="form.reviewerOpinion" class="input-base">
+            <select v-model="formData.reviewerOpinion" class="input-base">
               <option value="">请选择审核意见</option>
               <option value="予以认可">予以认可</option>
               <option value="责成采取进一步审计措施">责成采取进一步审计措施，获取适当、充分的审计证据</option>
@@ -92,11 +91,11 @@
           </div>
           <div>
             <label class="label-base">附件页数</label>
-            <input v-model.number="form.attachmentCount" type="number" class="input-base" placeholder="请输入附件页数" />
+            <input v-model.number="formData.attachmentCount" type="number" class="input-base" placeholder="请输入附件页数" />
           </div>
         </div>
         <div class="flex justify-end gap-3 mt-6">
-          <button class="btn-secondary" @click="showForm = false">取消</button>
+          <button class="btn-secondary" @click="closeForm">取消</button>
           <button class="btn-primary" @click="handleSaveForm">保存</button>
         </div>
       </div>
@@ -131,7 +130,7 @@ const loading = ref(false);
 const showForm = ref(false);
 const editingId = ref<number | null>(null);
 
-const form = ref({
+const formData = ref({
   indexNumber: '',
   projectName: '',
   auditMatter: '',
@@ -145,6 +144,23 @@ const form = ref({
   reviewDate: '',
   attachmentCount: 0,
 });
+
+function resetForm(): void {
+  formData.value = {
+    indexNumber: '',
+    projectName: '',
+    auditMatter: '',
+    auditorName: '',
+    compileDate: '',
+    auditProcess: '',
+    factSummary: '',
+    auditConclusion: '',
+    reviewerOpinion: '',
+    reviewerName: '',
+    reviewDate: '',
+    attachmentCount: 0,
+  };
+}
 
 onMounted(() => {
   loadPapers();
@@ -162,9 +178,20 @@ async function loadPapers(): Promise<void> {
   }
 }
 
+function openForm(): void {
+  resetForm();
+  editingId.value = null;
+  showForm.value = true;
+}
+
+function closeForm(): void {
+  showForm.value = false;
+  editingId.value = null;
+}
+
 function editItem(item: PaperRow): void {
   editingId.value = item.id;
-  form.value = {
+  formData.value = {
     indexNumber: item.indexNumber,
     projectName: item.projectName,
     auditMatter: item.auditMatter,
@@ -183,18 +210,17 @@ function editItem(item: PaperRow): void {
 
 async function handleSaveForm(): Promise<void> {
   try {
-    const data = { projectId: props.projectId, ...form.value };
+    const data = { projectId: props.projectId, ...formData.value };
     if (editingId.value) {
       const res = await window.electronAPI.workingPapers.update(editingId.value, data);
       if (res.success) {
-        showForm.value = false;
-        editingId.value = null;
+        closeForm();
         await loadPapers();
       }
     } else {
       const res = await window.electronAPI.workingPapers.create(data);
       if (res.success) {
-        showForm.value = false;
+        closeForm();
         await loadPapers();
       }
     }

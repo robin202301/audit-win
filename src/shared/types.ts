@@ -126,6 +126,7 @@ export interface FileAttachment {
 
 // 通知阶段数据
 export interface NoticeData {
+  auditProjectName: string;    // 审计项目名称（关于开展xxx审计通知）
   auditOrg: string;            // 审计机关全称
   documentNumber: string;      // 文号
   auditedLeaderName: string;   // 被审计领导干部姓名

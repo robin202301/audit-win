@@ -73,13 +73,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { AuditStage } from '@shared/types';
 
 const props = defineProps<{ projectId: number; stage: AuditStage }>();
-const emit = defineEmits<{ saved: [] }>();
 
-const form = reactive({
+const form = ref({
   documentNumber: '',
   auditedUnit: '',
   auditedLeaderName: '',
@@ -99,13 +98,30 @@ const form = reactive({
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 
+function loadFormData(data: Record<string, unknown>): void {
+  form.value.documentNumber = (data.documentNumber as string) || '';
+  form.value.auditedUnit = (data.auditedUnit as string) || '';
+  form.value.auditedLeaderName = (data.auditedLeaderName as string) || '';
+  form.value.auditProject = (data.auditProject as string) || '';
+  form.value.auditStartDate = (data.auditStartDate as string) || '';
+  form.value.auditEndDate = (data.auditEndDate as string) || '';
+  form.value.leaderPosition1 = (data.leaderPosition1 as string) || '';
+  form.value.leaderPosition2 = (data.leaderPosition2 as string) || '';
+  form.value.basicInfo = (data.basicInfo as string) || '';
+  form.value.mainWork = (data.mainWork as string) || '';
+  form.value.overallEvaluation = (data.overallEvaluation as string) || '';
+  form.value.problemsFound = (data.problemsFound as string) || '';
+  form.value.responsibility = (data.responsibility as string) || '';
+  form.value.auditSuggestions = (data.auditSuggestions as string) || '';
+}
+
 onMounted(async () => {
   try {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);
     if (res.success && res.data) {
       const stageData = res.data.find((s: { stage: string }) => s.stage === props.stage);
       if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
-        Object.assign(form, JSON.parse(stageData.dataJson));
+        loadFormData(JSON.parse(stageData.dataJson));
       }
     }
   } catch {
@@ -120,12 +136,11 @@ async function handleSave(): Promise<void> {
     const res = await window.electronAPI.stages.updateData(
       props.projectId,
       props.stage,
-      JSON.stringify({ ...form }),
+      JSON.stringify(form.value),
       'in_progress'
     );
     if (res.success) {
       alert('保存成功');
-      emit('saved');
     } else {
       saveError.value = res.message || '保存失败';
     }
@@ -140,7 +155,7 @@ async function handleExport(): Promise<void> {
   try {
     const res = await window.electronAPI.documents.openSaveDialog('审计报告.docx');
     if (res.success && res.data) {
-      const genRes = await window.electronAPI.documents.generate('tpl_final_report', { ...form }, res.data.filePath);
+      const genRes = await window.electronAPI.documents.generate('tpl_final_report', { ...form.value }, res.data.filePath);
       if (genRes.success) {
         alert('报告已导出：' + res.data!.filePath);
       } else {

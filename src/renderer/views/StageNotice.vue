@@ -10,6 +10,10 @@
     </div>
 
     <div class="grid gap-4 md:grid-cols-2">
+      <div class="md:col-span-2">
+        <label class="label-base">审计项目名称</label>
+        <input v-model="form.auditProjectName" class="input-base" placeholder="例：关于开展XX同志经济责任审计的通知" />
+      </div>
       <div>
         <label class="label-base">审计机关全称</label>
         <input v-model="form.auditOrg" class="input-base" placeholder="请输入审计机关全称" />
@@ -66,14 +70,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { AuditStage } from '@shared/types';
-import type { NoticeData } from '@shared/types';
 
 const props = defineProps<{ projectId: number; stage: AuditStage }>();
-const emit = defineEmits<{ saved: [] }>();
 
-const form = reactive<NoticeData>({
+const form = ref({
+  auditProjectName: '',
   auditOrg: '',
   documentNumber: '',
   auditedLeaderName: '',
@@ -98,7 +101,12 @@ onMounted(async () => {
     if (res.success && res.data) {
       const stageData = res.data.find((s: { stage: string }) => s.stage === props.stage);
       if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
-        Object.assign(form, JSON.parse(stageData.dataJson));
+        const parsed = JSON.parse(stageData.dataJson);
+        for (const key of Object.keys(form.value)) {
+          if (parsed[key] !== undefined) {
+            (form.value as Record<string, unknown>)[key] = parsed[key];
+          }
+        }
       }
     }
   } catch {
@@ -113,12 +121,11 @@ async function handleSave(): Promise<void> {
     const res = await window.electronAPI.stages.updateData(
       props.projectId,
       props.stage,
-      JSON.stringify({ ...form }),
+      JSON.stringify(form.value),
       'in_progress'
     );
     if (res.success) {
       alert('保存成功');
-      emit('saved');
     } else {
       saveError.value = res.message || '保存失败';
     }
@@ -133,7 +140,7 @@ async function handleExport(): Promise<void> {
   try {
     const res = await window.electronAPI.documents.openSaveDialog('审计通知书.docx');
     if (res.success && res.data) {
-      const genRes = await window.electronAPI.documents.generate('tpl_audit_notice', { ...form }, res.data.filePath);
+      const genRes = await window.electronAPI.documents.generate('tpl_audit_notice', { ...form.value }, res.data.filePath);
       if (genRes.success) {
         alert('文档已导出：' + res.data!.filePath);
       } else {
@@ -157,7 +164,11 @@ async function handleUploadWord(): Promise<void> {
       const arrayBuffer = await file.arrayBuffer();
       const result = await window.electronAPI.documents.parseWord(arrayBuffer);
       if (result.success && result.data) {
-        Object.assign(form, result.data);
+        for (const key of Object.keys(form.value)) {
+          if ((result.data as Record<string, unknown>)[key] !== undefined) {
+            (form.value as Record<string, unknown>)[key] = (result.data as Record<string, unknown>)[key];
+          }
+        }
       } else {
         alert('解析失败：' + (result.message || '未知错误'));
       }

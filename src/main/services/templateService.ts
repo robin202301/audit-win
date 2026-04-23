@@ -5,12 +5,11 @@ import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 
 function getTemplatePath(templateName: string): string {
-  // 在开发环境和生产环境中都能找到模板
   let basePath: string;
   if (process.env.NODE_ENV === 'development') {
     basePath = path.resolve(__dirname, '../../../../resources/templates');
   } else {
-    basePath = path.join(process.resourcesPath, 'templates');
+    basePath = path.join(process.resourcesPath, 'resources', 'templates');
   }
 
   // 尝试匹配模板文件名
@@ -55,7 +54,7 @@ export function getAvailableTemplates(): string[] {
   if (process.env.NODE_ENV === 'development') {
     basePath = path.resolve(__dirname, '../../../../resources/templates');
   } else {
-    basePath = path.join(process.resourcesPath, 'templates');
+    basePath = path.join(process.resourcesPath, 'resources', 'templates');
   }
 
   if (!fs.existsSync(basePath)) return [];
