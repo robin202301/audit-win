@@ -6,7 +6,7 @@
       <div class="mb-6">
         <h2 class="text-2xl font-bold text-gray-800">{{ store.currentProject.name }}</h2>
         <p class="text-sm text-gray-500 mt-1">
-          {{ store.currentProject.auditedUnit }} | {{ store.currentProject.auditType }}
+          {{ store.currentProject.auditedTarget }} | {{ store.currentProject.auditType }}
         </p>
       </div>
 

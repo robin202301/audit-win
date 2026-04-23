@@ -6,7 +6,7 @@ declare global {
       projects: {
         getAll: () => Promise<IPCResponse<Project[]>>;
         getById: (id: number) => Promise<IPCResponse<Project>>;
-        create: (data: { name: string; auditedUnit?: string; auditType?: string }) => Promise<IPCResponse<{ id: number }>>;
+        create: (data: { name: string; auditedTarget?: string; auditType?: string }) => Promise<IPCResponse<{ id: number }>>;
         update: (id: number, data: Record<string, unknown>) => Promise<IPCResponse>;
         delete: (id: number) => Promise<IPCResponse>;
       };

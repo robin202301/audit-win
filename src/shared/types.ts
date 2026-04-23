@@ -28,7 +28,7 @@ export interface IPCResponse<T = unknown> {
 export interface Project {
   id: number;
   name: string;                // 项目名称
-  auditedUnit: string;         // 被审计单位
+  auditedTarget: string;       // 被审计单位/个人
   auditType: string;           // 审计类型（经济责任审计等）
   status: 'active' | 'archived' | 'draft';
   createdAt: string;

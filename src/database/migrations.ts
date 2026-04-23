@@ -6,13 +6,20 @@ export async function runMigrations(db: Database): Promise<void> {
     CREATE TABLE IF NOT EXISTS projects (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      audited_unit TEXT NOT NULL DEFAULT '',
+      audited_target TEXT NOT NULL DEFAULT '',
       audit_type TEXT NOT NULL DEFAULT '经济责任审计',
       status TEXT NOT NULL DEFAULT 'draft',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // 兼容旧数据库：如果存在 audited_unit 列则重命名为 audited_target
+  try {
+    await db.exec(`ALTER TABLE projects RENAME COLUMN audited_unit TO audited_target`);
+  } catch {
+    // 列不存在或已重命名，忽略
+  }
 
   // 阶段进度表
   await db.exec(`

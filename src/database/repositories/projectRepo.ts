@@ -12,11 +12,11 @@ export class ProjectRepo {
     return this.db.get<Project>('SELECT * FROM projects WHERE id = ?', id);
   }
 
-  async create(data: { name: string; auditedUnit?: string; auditType?: string }): Promise<number> {
+  async create(data: { name: string; auditedTarget?: string; auditType?: string }): Promise<number> {
     const result = await this.db.run(
-      'INSERT INTO projects (name, audited_unit, audit_type) VALUES (?, ?, ?)',
+      'INSERT INTO projects (name, audited_target, audit_type) VALUES (?, ?, ?)',
       data.name,
-      data.auditedUnit || '',
+      data.auditedTarget || '',
       data.auditType || '经济责任审计'
     );
     return result.lastID!;

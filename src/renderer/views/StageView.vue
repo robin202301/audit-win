@@ -9,6 +9,7 @@
     <component
       :is="stageComponent"
       :project-id="Number(projectId)"
+      :project-info="projectInfo"
       :stage="stage"
       @saved="handleSaved"
     />
@@ -16,9 +17,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, markRaw, shallowRef, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { computed, markRaw, onMounted, shallowRef, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { AuditStage, STAGE_LABELS } from '@shared/types';
+import { useProjectStore } from '@stores/project';
 import StageNotice from './StageNotice.vue';
 import StageSurvey from './StageSurvey.vue';
 import StagePlan from './StagePlan.vue';
@@ -28,12 +30,25 @@ import StageReport from './StageReport.vue';
 
 const props = defineProps<{ id: string; stage: string }>();
 const router = useRouter();
-const route = useRoute();
+const store = useProjectStore();
 
 const projectId = props.id;
 const stage = props.stage as AuditStage;
 
 const stageTitle = computed(() => STAGE_LABELS[stage] || '未知阶段');
+
+const projectInfo = shallowRef<{ name: string; auditedTarget: string; auditType: string } | null>(null);
+
+onMounted(async () => {
+  await store.loadProject(Number(projectId));
+  if (store.currentProject) {
+    projectInfo.value = {
+      name: store.currentProject.name,
+      auditedTarget: store.currentProject.auditedTarget,
+      auditType: store.currentProject.auditType,
+    };
+  }
+});
 
 const componentMap: Record<AuditStage, object> = {
   [AuditStage.NOTICE]: markRaw(StageNotice),

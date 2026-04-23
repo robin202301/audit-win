@@ -73,7 +73,7 @@
 import { onMounted, ref } from 'vue';
 import { AuditStage } from '@shared/types';
 
-const props = defineProps<{ projectId: number; stage: AuditStage }>();
+const props = defineProps<{ projectId: number; stage: AuditStage; projectInfo?: { name: string; auditedTarget: string; auditType: string } }>();
 
 const form = ref({
   auditProjectName: '',
@@ -96,6 +96,15 @@ const saving = ref(false);
 const saveError = ref<string | null>(null);
 
 onMounted(async () => {
+  // 从项目信息自动填充
+  if (props.projectInfo) {
+    if (!form.value.auditProjectName) {
+      form.value.auditProjectName = props.projectInfo.name;
+    }
+    if (!form.value.auditedLeaderUnit) {
+      form.value.auditedLeaderUnit = props.projectInfo.auditedTarget;
+    }
+  }
   try {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);
     if (res.success && res.data) {

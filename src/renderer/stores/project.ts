@@ -9,7 +9,7 @@ declare global {
       projects: {
         getAll: () => Promise<IPCResponse<Project[]>>;
         getById: (id: number) => Promise<IPCResponse<Project>>;
-        create: (data: { name: string; auditedUnit?: string; auditType?: string }) => Promise<IPCResponse<{ id: number }>>;
+        create: (data: { name: string; auditedTarget?: string; auditType?: string }) => Promise<IPCResponse<{ id: number }>>;
         update: (id: number, data: Record<string, unknown>) => Promise<IPCResponse>;
         delete: (id: number) => Promise<IPCResponse>;
       };
@@ -89,7 +89,7 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  async function createProject(data: { name: string; auditedUnit?: string; auditType?: string }): Promise<number | null> {
+  async function createProject(data: { name: string; auditedTarget?: string; auditType?: string }): Promise<number | null> {
     loading.value = true;
     error.value = null;
     try {

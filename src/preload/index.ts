@@ -6,7 +6,7 @@ const api = {
   projects: {
     getAll: (): Promise<IPCResponse> => ipcRenderer.invoke('projects:get-all'),
     getById: (id: number): Promise<IPCResponse> => ipcRenderer.invoke('projects:get-by-id', id),
-    create: (data: { name: string; auditedUnit?: string; auditType?: string }): Promise<IPCResponse> =>
+    create: (data: { name: string; auditedTarget?: string; auditType?: string }): Promise<IPCResponse> =>
       ipcRenderer.invoke('projects:create', data),
     update: (id: number, data: Record<string, unknown>): Promise<IPCResponse> =>
       ipcRenderer.invoke('projects:update', id, data),

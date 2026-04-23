@@ -107,7 +107,7 @@
 import { onMounted, ref } from 'vue';
 import { AuditStage } from '@shared/types';
 
-const props = defineProps<{ projectId: number; stage: AuditStage }>();
+const props = defineProps<{ projectId: number; stage: AuditStage; projectInfo?: { name: string; auditedTarget: string; auditType: string } }>();
 
 interface PaperRow {
   id: number;
@@ -148,7 +148,7 @@ const formData = ref({
 function resetForm(): void {
   formData.value = {
     indexNumber: '',
-    projectName: '',
+    projectName: props.projectInfo?.name || '',
     auditMatter: '',
     auditorName: '',
     compileDate: '',

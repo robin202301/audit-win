@@ -26,7 +26,7 @@
         <div class="flex items-start justify-between">
           <div class="flex-1 min-w-0">
             <h3 class="text-lg font-semibold text-gray-800 truncate">{{ project.name }}</h3>
-            <p class="text-sm text-gray-500 mt-1">{{ project.auditedUnit }}</p>
+            <p class="text-sm text-gray-500 mt-1">{{ project.auditedTarget }}</p>
             <p class="text-xs text-gray-400 mt-2">{{ project.auditType }}</p>
           </div>
           <span :class="statusBadge(project.status)">
@@ -55,16 +55,16 @@
             <input v-model="newProject.name" class="input-base" placeholder="请输入项目名称" />
           </div>
           <div>
-            <label class="label-base">被审计单位</label>
-            <input v-model="newProject.auditedUnit" class="input-base" placeholder="请输入被审计单位名称" />
+            <label class="label-base">被审计单位/个人</label>
+            <input v-model="newProject.auditedTarget" class="input-base" placeholder="请输入被审计单位或个人名称" />
           </div>
           <div>
             <label class="label-base">审计类型</label>
             <select v-model="newProject.auditType" class="input-base">
               <option value="经济责任审计">经济责任审计</option>
-              <option value="财务收支审计">财务收支审计</option>
-              <option value="专项审计">专项审计</option>
-              <option value="内部控制审计">内部控制审计</option>
+              <option value="预算执行审计">预算执行审计</option>
+              <option value="财政收支审计">财政收支审计</option>
+              <option value="预算执行和其他财政收支审计">预算执行和其他财政收支审计</option>
             </select>
           </div>
         </div>
@@ -89,7 +89,7 @@ const store = useProjectStore();
 const showCreateDialog = ref(false);
 const newProject = reactive({
   name: '',
-  auditedUnit: '',
+  auditedTarget: '',
   auditType: '经济责任审计',
 });
 
@@ -105,13 +105,13 @@ async function handleCreate(): Promise<void> {
   if (!newProject.name.trim()) return;
   const id = await store.createProject({
     name: newProject.name.trim(),
-    auditedUnit: newProject.auditedUnit.trim(),
+    auditedTarget: newProject.auditedTarget.trim(),
     auditType: newProject.auditType,
   });
   if (id) {
     showCreateDialog.value = false;
     newProject.name = '';
-    newProject.auditedUnit = '';
+    newProject.auditedTarget = '';
   }
 }
 
