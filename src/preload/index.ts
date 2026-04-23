@@ -62,6 +62,8 @@ const api = {
       ipcRenderer.invoke('documents:generate', templateName, data, outputPath),
     openSaveDialog: (defaultName: string): Promise<IPCResponse> =>
       ipcRenderer.invoke('documents:open-save-dialog', defaultName),
+    generateExcel: (templateName: string, data: Record<string, unknown>, outputPath: string): Promise<IPCResponse> =>
+      ipcRenderer.invoke('documents:generate-excel', templateName, data, outputPath),
     parseWord: (arrayBuffer: ArrayBuffer): Promise<IPCResponse> =>
       ipcRenderer.invoke('documents:parse-word', arrayBuffer),
   },

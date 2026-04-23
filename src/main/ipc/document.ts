@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 // @ts-ignore - mammoth 类型声明待安装
 import mammoth from 'mammoth';
-import { generateDocument } from '../services/templateService';
+import { generateDocument, generateExcel } from '../services/templateService';
 
 export function setupDocumentHandlers(): void {
   ipcMain.handle('documents:generate', async (_event, templateName: string, data: Record<string, unknown>, outputPath: string) => {
@@ -12,6 +12,15 @@ export function setupDocumentHandlers(): void {
       return { success: true, data: { outputPath } };
     } catch (error: unknown) {
       return { success: false, message: `生成文档失败：${(error as Error).message}` };
+    }
+  });
+
+  ipcMain.handle('documents:generate-excel', async (_event, templateName: string, data: Record<string, unknown>, outputPath: string) => {
+    try {
+      await generateExcel(templateName, data, outputPath);
+      return { success: true, data: { outputPath } };
+    } catch (error: unknown) {
+      return { success: false, message: `生成表格失败：${(error as Error).message}` };
     }
   });
 

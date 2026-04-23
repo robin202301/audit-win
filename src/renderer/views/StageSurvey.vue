@@ -195,38 +195,37 @@ async function handleSave(): Promise<void> {
 
 async function handleExportExcel(): Promise<void> {
   try {
-    const XLSX = await import('xlsx');
-    const wb = XLSX.utils.book_new();
-
-    const wsData = [
-      ['被审计单位基本情况表'],
-      ['单位名称：', form.value.unitName, '', '截止：', form.value.fillDate || '年  月  日'],
-      ['单位性质', form.value.unitNature],
-      ['法人代表', form.value.legalRepresentative],
-      ['主管单位', form.value.supervisingUnit],
-      ['人员编制', form.value.staffQuota],
-      ['期末人数', form.value.currentStaffCount],
-      ['机构设置情况', form.value.orgStructure],
-      ['职责范围/经营范围', form.value.responsibilityScope],
-      ['法律法规、政策及其执行情况', form.value.lawExecution],
-      ['财政财务管理体制和业务管理体制', form.value.financialSystem],
-      ['适用的业绩指标体系及业绩评价情况', form.value.performanceIndicators],
-      ['相关内部控制及其执行情况', form.value.internalControl],
-      ['相关信息系统及其电子数据情况', form.value.infoSystems],
-      ['经济环境、行业状况及其他外部因素', form.value.economicEnvironment],
-      ['以往接受审计情况', form.value.previousAudit],
-      ['其他需要了解的情况', form.value.otherInfo],
-      ['填表人', form.value.fillerName, '', '日期', form.value.fillDate],
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{ wch: 20 }, { wch: 50 }];
-    XLSX.utils.book_append_sheet(wb, ws, '审计调查记录');
-
     const res = await window.electronAPI.documents.openSaveDialog('审计调查记录.xlsx');
-    if (res.success && res.data) {
-      XLSX.writeFile(wb, res.data.filePath);
-      alert('表格已导出：' + res.data.filePath);
+    if (!res.success || !res.data) return;
+    const data: Record<string, unknown> = {
+      unitName: form.value.unitName,
+      unitNature: form.value.unitNature,
+      legalRep: form.value.legalRepresentative,
+      supervisingUnit: form.value.supervisingUnit,
+      staffQuota: form.value.staffQuota,
+      currentCount: form.value.currentStaffCount,
+      orgStructure: form.value.orgStructure,
+      responsibilityScope: form.value.responsibilityScope,
+      lawExecution: form.value.lawExecution,
+      finSystem: form.value.financialSystem,
+      perfIndicators: form.value.performanceIndicators,
+      internalCtrl: form.value.internalControl,
+      infoSystem: form.value.infoSystems,
+      econEnv: form.value.economicEnvironment,
+      prevAudit: form.value.previousAudit,
+      otherInfo: form.value.otherInfo,
+      fillerName: form.value.fillerName,
+      fillDate: form.value.fillDate,
+    };
+    const genRes = await window.electronAPI.documents.generateExcel(
+      'tpl_investigation_record_auditee_basic_info',
+      data,
+      res.data.filePath
+    );
+    if (genRes.success) {
+      alert('表格已导出：' + res.data!.filePath);
+    } else {
+      alert('导出失败：' + (genRes.message || '未知错误'));
     }
   } catch (e: unknown) {
     alert('导出失败：' + (e as Error).message);
