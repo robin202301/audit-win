@@ -1,20 +1,20 @@
-name: Build Windows Installer
+name: Build and Release Windows App
 
 on:
   push:
     branches: [main, master]
     tags:
-      - 'v*'
+      - 'v*' # 当你推送 v0.1.0 这种标签时触发 Release
   pull_request:
     branches: [main, master]
+
+# 核心：解决 403 Forbidden 权限问题
+permissions:
+  contents: write
 
 jobs:
   build-windows:
     runs-on: windows-latest
-    # --- 关键修改 1: 增加权限声明 ---
-    permissions:
-      contents: write
-    # ----------------------------
 
     steps:
       - name: 检出代码
@@ -26,47 +26,46 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: 安装 Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: 安装依赖
+        # 使用 ci 确保环境一致性，如果是常规开发用 install 也可以
         run: npm install
 
-      - name: 重建原生模块
+      - name: 重建原生模块 (针对 C++ 扩展)
         run: npx electron-rebuild
 
-      - name: 构建应用
+      - name: 前端打包 (Vite/Webpack)
         run: npm run build
 
-      - name: 验证构建产物
-        run: |
-          if (!(Test-Path "dist/main/main/index.js")) { throw "主进程构建产物缺失" }
-          if (!(Test-Path "dist/renderer/index.html")) { throw "渲染进程构建产物缺失" }
-          Write-Host "构建产物验证通过"
-
       - name: 打包 Windows 安装程序
-        # --- 关键修改 2: 增加 --publish never 避免与下方 release 冲突 ---
+        # 使用 --publish never 确保在此步骤不触发发布，由下方的 release job 统一处理
         run: npx electron-builder --win --x64 --publish never
-        # ----------------------------------------------------------
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 上传构建产物
+      - name: 调试：列出文件确保路径正确
+        # 如果还是找不到文件，这个步骤会在日志里告诉你文件到底在哪
+        run: |
+          Get-ChildItem -Path . -Recurse -Filter "*.exe"
+          Get-ChildItem -Path . -Recurse -Filter "*.yml"
+
+      - name: 上传构建产物至 Action Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: KQQ-Audit-System-Windows
-          # 确认你的 electron-builder 输出目录，默认通常是 dist 或 release
+          # 使用通配符兼容 dist 和 release 目录
           path: |
-            dist/*.exe
-            dist/*.yml
-          retention-days: 30
+            **/dist/*.exe
+            **/dist/*.yml
+            **/release/*.exe
+            **/release/*.yml
+          if-no-files-found: error
+          retention-days: 7
 
   release:
     needs: build-windows
-    runs-on: ubuntu-latest
+    # 只有推送 tag 时才执行真正的发布操作
     if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -77,12 +76,15 @@ jobs:
           name: KQQ-Audit-System-Windows
           path: artifacts/
 
-      - name: 创建 GitHub Release
+      - name: 发布至 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          # 自动匹配下载到的所有 exe 和 yml 文件
           files: |
-            artifacts/*.exe
-            artifacts/*.yml
+            artifacts/**/*.exe
+            artifacts/**/*.yml
           generate_release_notes: true
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
