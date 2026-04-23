@@ -11,6 +11,10 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    # --- 关键修改 1: 增加权限声明 ---
+    permissions:
+      contents: write
+    # ----------------------------
 
     steps:
       - name: 检出代码
@@ -43,7 +47,9 @@ jobs:
           Write-Host "构建产物验证通过"
 
       - name: 打包 Windows 安装程序
-        run: npx electron-builder --win --x64
+        # --- 关键修改 2: 增加 --publish never 避免与下方 release 冲突 ---
+        run: npx electron-builder --win --x64 --publish never
+        # ----------------------------------------------------------
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -51,9 +57,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: KQQ-Audit-System-Windows
+          # 确认你的 electron-builder 输出目录，默认通常是 dist 或 release
           path: |
-            release/*.exe
-            release/*.yml
+            dist/*.exe
+            dist/*.yml
           retention-days: 30
 
   release:
