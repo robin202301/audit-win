@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { markRaw, ref, shallowRef } from 'vue';
 import type { Project, StageProgress, IPCResponse } from '@shared/types';
-import { AuditStage } from '@shared/types';
 
 declare global {
   interface Window {
@@ -43,6 +42,8 @@ declare global {
       documents: {
         generate: (templateName: string, data: Record<string, unknown>, outputPath: string) => Promise<IPCResponse>;
         openSaveDialog: (defaultName: string) => Promise<IPCResponse<{ filePath: string }>>;
+        generateExcel: (templateName: string, data: Record<string, unknown>, outputPath: string) => Promise<IPCResponse>;
+        parseWord: (arrayBuffer: ArrayBuffer) => Promise<IPCResponse>;
       };
     };
   }
@@ -134,7 +135,7 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  async function saveStageData(projectId: number, stage: AuditStage, data: Record<string, unknown>, status?: string): Promise<boolean> {
+  async function saveStageData(projectId: number, stage: string, data: Record<string, unknown>, status?: string): Promise<boolean> {
     try {
       const res = await window.electronAPI.stages.updateData(
         projectId,
@@ -154,7 +155,7 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  function getStageStatus(stage: AuditStage): string {
+  function getStageStatus(stage: string): string {
     return stageProgress.value.find((s) => s.stage === stage)?.status || 'not_started';
   }
 

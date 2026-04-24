@@ -1,11 +1,51 @@
-// 审计阶段枚举
+// 审计工作流步骤（22步按序号排列）
+export interface WorkflowStep {
+  stepNumber: number;        // 步骤序号 1-22
+  key: string;               // 唯一标识
+  label: string;             // 显示名称
+  phase: number;             // 所属阶段 1-5
+  phaseLabel: string;        // 阶段名称
+  template?: string;         // 导出模板名
+  importFrom?: string[];     // 从哪些步骤导入数据
+}
+
+export const WORKFLOW_STEPS: WorkflowStep[] = [
+  { stepNumber: 1, key: 'work_plan', label: '审计工作方案', phase: 1, phaseLabel: '审计准备阶段', importFrom: [] },
+  { stepNumber: 2, key: 'notice', label: '审计通知', phase: 1, phaseLabel: '审计准备阶段', template: 'tpl_audit_notice', importFrom: ['work_plan'] },
+  { stepNumber: 3, key: 'eight_prohibitions', label: '附件：八不准', phase: 1, phaseLabel: '审计准备阶段', template: 'tpl_audit_eight_prohibitions_requirements', importFrom: [] },
+  { stepNumber: 4, key: 'delivery_receipt', label: '审计文书送达回证', phase: 1, phaseLabel: '审计准备阶段', template: 'tpl_audit_document_delivery_receipt', importFrom: [] },
+  { stepNumber: 5, key: 'audit_announcement', label: '经济责任审计公示', phase: 1, phaseLabel: '审计准备阶段', template: 'tpl_er_audit_announcement', importFrom: ['notice'] },
+  { stepNumber: 6, key: 'commitment_letter', label: '被审计单位承诺书', phase: 1, phaseLabel: '审计准备阶段', template: 'tpl_auditee_commitment', importFrom: [] },
+  { stepNumber: 7, key: 'survey', label: '调查了解记录', phase: 1, phaseLabel: '审计准备阶段', template: 'tpl_investigation_record_auditee_basic_info', importFrom: [] },
+  { stepNumber: 8, key: 'plan', label: '审计实施方案', phase: 1, phaseLabel: '审计准备阶段', template: 'tpl_audit_plan', importFrom: ['work_plan', 'survey'] },
+  { stepNumber: 9, key: 'task_list', label: '任务清单', phase: 1, phaseLabel: '审计准备阶段', template: 'tpl_task_list', importFrom: ['plan'] },
+  { stepNumber: 10, key: 'interview_record', label: '谈话记录', phase: 1, phaseLabel: '审计准备阶段', template: 'tpl_investigation_interview_record', importFrom: [] },
+  { stepNumber: 11, key: 'evidence', label: '审计取证单', phase: 2, phaseLabel: '审计实施阶段', template: 'tpl_audit_evidence', importFrom: [] },
+  { stepNumber: 12, key: 'working_paper', label: '审计底稿', phase: 2, phaseLabel: '审计实施阶段', template: 'tpl_working_paper', importFrom: ['evidence'] },
+  { stepNumber: 13, key: 'task_list_completion', label: '审计任务清单完成情况', phase: 2, phaseLabel: '审计实施阶段', template: 'tpl_task_list_completion', importFrom: ['task_list'] },
+  { stepNumber: 14, key: 'report', label: '审计组审计报告', phase: 2, phaseLabel: '审计实施阶段', template: 'tpl_final_report', importFrom: ['survey', 'evidence', 'working_paper'] },
+  { stepNumber: 15, key: 'report_consultation', label: '审计报告征求意见书', phase: 3, phaseLabel: '审计报告阶段', template: 'tpl_er_audit_report_consultation', importFrom: ['report'] },
+  { stepNumber: 16, key: 'audit_opinion', label: '审核意见', phase: 3, phaseLabel: '审计报告阶段', template: 'tpl_audit_opinion', importFrom: ['report_consultation'] },
+  { stepNumber: 17, key: 'review_opinion', label: '复核意见', phase: 3, phaseLabel: '审计报告阶段', template: 'tpl_review_opinion', importFrom: ['audit_opinion'] },
+  { stepNumber: 18, key: 'adjudication_opinion', label: '审理意见', phase: 3, phaseLabel: '审计报告阶段', template: 'tpl_adjudication_opinion', importFrom: ['review_opinion'] },
+  { stepNumber: 19, key: 'adjudication_meeting', label: '审理会纪要', phase: 3, phaseLabel: '审计报告阶段', template: 'tpl_adjudication_meeting_minutes', importFrom: ['adjudication_opinion'] },
+  { stepNumber: 20, key: 'draft_cover', label: '代拟稿封皮', phase: 3, phaseLabel: '审计报告阶段', template: 'tpl_draft_cover', importFrom: ['adjudication_meeting'] },
+  { stepNumber: 21, key: 'external_report', label: '对外报告', phase: 4, phaseLabel: '审计处理阶段', template: 'tpl_final_report', importFrom: ['report'] },
+  { stepNumber: 22, key: 'result_report', label: '经责审计结果报告', phase: 4, phaseLabel: '审计处理阶段', template: 'tpl_er_result_report', importFrom: ['external_report'] },
+  { stepNumber: 23, key: 'issues_not_reflected', label: '未在报告中反映问题清单', phase: 4, phaseLabel: '审计处理阶段', template: 'tpl_issues_not_reflected_in_audit_report', importFrom: [] },
+  { stepNumber: 24, key: 'audit_decision', label: '审计决定书', phase: 4, phaseLabel: '审计处理阶段', template: 'tpl_audit_opinion', importFrom: ['external_report'] },
+  { stepNumber: 25, key: 'issue_ledger', label: '审计问题台账', phase: 4, phaseLabel: '审计处理阶段', template: '', importFrom: ['external_report'] },
+  { stepNumber: 26, key: 'archive_catalog', label: '审计档案目录', phase: 5, phaseLabel: '审计归档阶段', template: '', importFrom: [] },
+];
+
+// 向后兼容：保留原有6阶段枚举
 export enum AuditStage {
-  NOTICE = 'notice',           // 审计通知
-  SURVEY = 'survey',           // 审计调查
-  PLAN = 'plan',               // 审计方案
-  EVIDENCE = 'evidence',       // 审计取证
-  WORKING_PAPER = 'working_paper', // 审计底稿
-  REPORT = 'report',           // 审计报告
+  NOTICE = 'notice',
+  SURVEY = 'survey',
+  PLAN = 'plan',
+  EVIDENCE = 'evidence',
+  WORKING_PAPER = 'working_paper',
+  REPORT = 'report',
 }
 
 export const STAGE_LABELS: Record<AuditStage, string> = {

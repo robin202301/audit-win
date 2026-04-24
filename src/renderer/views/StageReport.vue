@@ -164,7 +164,15 @@ async function handleExport(): Promise<void> {
   try {
     const res = await window.electronAPI.documents.openSaveDialog('审计报告.docx');
     if (res.success && res.data) {
-      const genRes = await window.electronAPI.documents.generate('tpl_final_report', { ...form.value }, res.data.filePath);
+      const data = {
+        ...form.value,
+        content: form.value.problemsFound || '',
+        text: '',
+        name: '',
+        val: '',
+        shortText: '',
+      };
+      const genRes = await window.electronAPI.documents.generate('tpl_final_report', data, res.data.filePath);
       if (genRes.success) {
         alert('报告已导出：' + res.data!.filePath);
       } else {

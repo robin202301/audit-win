@@ -18,6 +18,10 @@ function getTemplatePath(templateName: string): string {
     `${templateName}.docx`,
     `tpl_${templateName}.docx`,
     `tpl_${templateName}.doc`,
+    `${templateName}.xlsx`,
+    `tpl_${templateName}.xlsx`,
+    `${templateName}.xls`,
+    `tpl_${templateName}.xls`,
   ];
 
   for (const name of possibleNames) {

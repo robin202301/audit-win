@@ -3,40 +3,58 @@
     <div class="mb-4 flex items-center gap-2 text-sm text-gray-500">
       <button class="hover:text-blue-600" @click="goBack">返回项目</button>
       <span>/</span>
-      <span class="text-gray-800 font-medium">{{ stageTitle }}</span>
+      <span class="text-gray-800 font-medium">{{ stepTitle }}</span>
     </div>
 
+    <!-- 原有6阶段使用专用组件 -->
     <component
-      :is="stageComponent"
+      v-if="isLegacyStage"
+      :is="legacyComponent"
       :project-id="Number(projectId)"
       :project-info="projectInfo"
       :stage="stage"
       @saved="handleSaved"
     />
+
+    <!-- 新步骤使用通用表单 -->
+    <GenericStageForm
+      v-else-if="workflowStep"
+      :project-id="Number(projectId)"
+      :step="workflowStep"
+      :project-info="projectInfo"
+    />
+
+    <div v-else class="card text-center py-12 text-gray-500">
+      未知步骤：{{ stage }}
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, markRaw, onMounted, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { AuditStage, STAGE_LABELS } from '@shared/types';
 import { useProjectStore } from '@stores/project';
+import { WORKFLOW_STEPS } from '@shared/types';
 import StageNotice from './StageNotice.vue';
 import StageSurvey from './StageSurvey.vue';
 import StagePlan from './StagePlan.vue';
 import StageEvidence from './StageEvidence.vue';
 import StageWorkingPaper from './StageWorkingPaper.vue';
 import StageReport from './StageReport.vue';
+import GenericStageForm from './stages/GenericStageForm.vue';
 
 const props = defineProps<{ id: string; stage: string }>();
 const router = useRouter();
 const store = useProjectStore();
 
 const projectId = props.id;
-const stage = props.stage as AuditStage;
+const stage = props.stage;
 
-const stageTitle = computed(() => STAGE_LABELS[stage] || '未知阶段');
+// 查找当前步骤在工作流中的定义
+const workflowStep = computed(() => WORKFLOW_STEPS.find(s => s.key === stage));
+const stepTitle = computed(() => workflowStep.value?.label || '未知阶段');
 
+// 项目信息
 const projectInfo = shallowRef<{ name: string; auditedTarget: string; auditType: string } | null>(null);
 
 onMounted(async () => {
@@ -50,20 +68,21 @@ onMounted(async () => {
   }
 });
 
-const componentMap: Record<AuditStage, object> = {
-  [AuditStage.NOTICE]: markRaw(StageNotice),
-  [AuditStage.SURVEY]: markRaw(StageSurvey),
-  [AuditStage.PLAN]: markRaw(StagePlan),
-  [AuditStage.EVIDENCE]: markRaw(StageEvidence),
-  [AuditStage.WORKING_PAPER]: markRaw(StageWorkingPaper),
-  [AuditStage.REPORT]: markRaw(StageReport),
+// 原有6阶段映射
+const LEGACY_STAGE_MAP: Record<string, object> = {
+  notice: markRaw(StageNotice),
+  survey: markRaw(StageSurvey),
+  plan: markRaw(StagePlan),
+  evidence: markRaw(StageEvidence),
+  working_paper: markRaw(StageWorkingPaper),
+  report: markRaw(StageReport),
 };
 
-const stageComponent = shallowRef(componentMap[stage] || null);
+const isLegacyStage = computed(() => !!LEGACY_STAGE_MAP[stage]);
+const legacyComponent = shallowRef(LEGACY_STAGE_MAP[stage] || null);
 
 watch(() => props.stage, (newStage) => {
-  const key = newStage as AuditStage;
-  stageComponent.value = componentMap[key] || null;
+  legacyComponent.value = LEGACY_STAGE_MAP[newStage] || null;
 });
 
 function goBack(): void {

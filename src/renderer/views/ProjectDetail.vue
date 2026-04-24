@@ -10,44 +10,42 @@
         </p>
       </div>
 
-      <!-- 阶段导航 -->
+      <!-- 阶段分组 -->
       <div class="card mb-6">
-        <h3 class="text-lg font-semibold mb-4">审计工作流</h3>
-        <div class="flex items-center gap-2 overflow-x-auto">
-          <div
-            v-for="(stageInfo, idx) in stages"
-            :key="stageInfo.key"
-            class="flex items-center gap-2"
-          >
-            <button
-              :class="[
-                'px-4 py-3 rounded-lg text-sm font-medium whitespace-nowrap transition-all min-w-[120px] text-center',
-                stageStatusClass(stageInfo.key),
-              ]"
-              @click="goToStage(stageInfo.key)"
-            >
-              <div class="text-base">{{ stageInfo.label }}</div>
-              <div class="text-xs mt-0.5 opacity-75">{{ stageStatusLabel(stageInfo.key) }}</div>
-            </button>
-            <span v-if="idx < stages.length - 1" class="text-gray-300">→</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 附加文档 -->
-      <div class="card">
-        <h3 class="text-lg font-semibold mb-4">附加文档</h3>
-        <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div class="flex gap-2 mb-4 border-b border-gray-200">
           <button
-            v-for="doc in additionalDocs"
-            :key="doc.template"
-            class="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all text-left"
-            @click="openDocument(doc.template, doc.label)"
+            v-for="phase in phaseTabs"
+            :key="phase.num"
+            :class="[
+              'px-4 py-2 text-sm font-medium border-b-2 transition-all',
+              currentPhase === phase.num
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700',
+            ]"
+            @click="currentPhase = phase.num"
           >
-            <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span class="text-sm text-gray-700">{{ doc.label }}</span>
+            {{ phase.label }}
+          </button>
+        </div>
+
+        <!-- 当前阶段的步骤列表 -->
+        <div class="grid gap-2">
+          <button
+            v-for="step in phases[currentPhase]"
+            :key="step.key"
+            class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all text-left"
+            @click="goToStep(step.key)"
+          >
+            <div class="flex items-center gap-3">
+              <span class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm font-bold">
+                {{ step.stepNumber }}
+              </span>
+              <span class="text-sm text-gray-700">{{ step.label }}</span>
+              <span v-if="step.importFrom && step.importFrom.length > 0" class="text-xs text-blue-400">（引用前序数据）</span>
+            </div>
+            <span :class="getStatusClass(step.key)" class="text-xs">
+              {{ getStatusLabel(step.key) }}
+            </span>
           </button>
         </div>
       </div>
@@ -56,53 +54,39 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { computed, onMounted, ref, shallowRef } from 'vue';
+import { useRouter } from 'vue-router';
 import { useProjectStore } from '@stores/project';
-import { AuditStage } from '@shared/types';
+import { WORKFLOW_STEPS } from '@shared/types';
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
-const route = useRoute();
 const store = useProjectStore();
 
-const stages = [
-  { key: AuditStage.NOTICE, label: '一阶段', full: '审计通知' },
-  { key: AuditStage.SURVEY, label: '二阶段', full: '审计调查' },
-  { key: AuditStage.PLAN, label: '三阶段', full: '审计方案' },
-  { key: AuditStage.EVIDENCE, label: '四阶段', full: '审计取证' },
-  { key: AuditStage.WORKING_PAPER, label: '五阶段', full: '审计底稿' },
-  { key: AuditStage.REPORT, label: '六阶段', full: '审计报告' },
-];
+// 按阶段分组
+const phases = computed(() => {
+  const groups: Record<number, typeof WORKFLOW_STEPS> = {};
+  for (const step of WORKFLOW_STEPS) {
+    if (!groups[step.phase]) groups[step.phase] = [];
+    groups[step.phase].push(step);
+  }
+  return groups;
+});
 
-const additionalDocs = [
-  { template: 'tpl_auditee_commitment', label: '被审计单位承诺书' },
-  { template: 'tpl_audit_document_delivery_receipt', label: '审计文书送达回证' },
-  { template: 'tpl_audit_eight_prohibitions_requirements', label: '审计八不准工作纪律' },
-  { template: 'tpl_er_audit_announcement', label: '审计公示' },
-  { template: 'tpl_er_result_report', label: '经济责任审计结果报告' },
-  { template: 'tpl_er_audit_report_consultation', label: '审计报告征求意见书' },
-  { template: 'tpl_investigation_interview_record', label: '调查谈话笔录' },
-  { template: 'tpl_review_opinion', label: '复核意见书' },
-  { template: 'tpl_issues_not_reflected_in_audit_report', label: '未反映问题清单' },
-  { template: 'tpl_work_report_outline', label: '述职报告提纲' },
-  { template: 'tpl_draft_cover', label: '报告代拟稿封面' },
-  { template: 'tpl_adjudication_meeting_minutes', label: '审理会议纪要' },
-  { template: 'tpl_adjudication_opinion', label: '审理意见书' },
-];
+const currentPhase = ref(1);
 
 onMounted(async () => {
   await store.loadProject(Number(props.id));
   await store.loadStages(Number(props.id));
 });
 
-function goToStage(stage: AuditStage): void {
-  router.push({ name: 'stage', params: { id: props.id, stage } });
+function goToStep(stepKey: string): void {
+  router.push({ name: 'stage', params: { id: props.id, stage: stepKey } });
 }
 
-function stageStatusClass(stage: AuditStage): string {
-  const status = store.getStageStatus(stage);
-  const base = 'border';
+function getStatusClass(stepKey: string): string {
+  const status = store.getStageStatus(stepKey as any);
+  const base = 'px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all min-w-[140px] text-center border';
   switch (status) {
     case 'completed':
       return `${base} border-green-400 bg-green-50 text-green-700`;
@@ -113,29 +97,21 @@ function stageStatusClass(stage: AuditStage): string {
   }
 }
 
-function stageStatusLabel(stage: AuditStage): string {
-  const status = store.getStageStatus(stage);
+function getStatusLabel(stepKey: string): string {
+  const status = store.getStageStatus(stepKey as any);
   const map: Record<string, string> = {
     not_started: '未开始',
     in_progress: '进行中',
     completed: '已完成',
   };
-  return map[status] || status;
+  return map[status] || '未开始';
 }
 
-async function openDocument(template: string, label: string): Promise<void> {
-  try {
-    const res = await window.electronAPI.documents.openSaveDialog(`${label}.docx`);
-    if (res.success && res.data) {
-      const genRes = await window.electronAPI.documents.generate(template, {}, res.data.filePath);
-      if (genRes.success) {
-        alert('文档已生成：' + res.data!.filePath);
-      } else {
-        alert('生成失败：' + (genRes.message || '未知错误'));
-      }
-    }
-  } catch (e: unknown) {
-    alert('操作失败：' + (e as Error).message);
-  }
-}
+const phaseTabs = [
+  { num: 1, label: '审计准备' },
+  { num: 2, label: '审计实施' },
+  { num: 3, label: '审计报告' },
+  { num: 4, label: '审计处理' },
+  { num: 5, label: '审计归档' },
+];
 </script>
