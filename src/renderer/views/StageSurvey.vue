@@ -142,9 +142,7 @@ function loadFormData(data: Record<string, unknown>): void {
 onMounted(async () => {
   // 从项目信息自动填充
   if (props.projectInfo) {
-    if (!form.value.unitName) {
-      form.value.unitName = props.projectInfo.auditedTarget;
-    }
+    form.value.unitName = form.value.unitName || props.projectInfo.auditedTarget;
   }
   try {
     const res = await window.electronAPI.survey.getByProjectId(props.projectId);

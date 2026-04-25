@@ -98,12 +98,8 @@ const saveError = ref<string | null>(null);
 onMounted(async () => {
   // 从项目信息自动填充
   if (props.projectInfo) {
-    if (!form.value.auditProjectName) {
-      form.value.auditProjectName = props.projectInfo.name;
-    }
-    if (!form.value.auditedLeaderUnit) {
-      form.value.auditedLeaderUnit = props.projectInfo.auditedTarget;
-    }
+    form.value.auditProjectName = form.value.auditProjectName || props.projectInfo.name;
+    form.value.auditedLeaderUnit = form.value.auditedLeaderUnit || props.projectInfo.auditedTarget;
   }
   try {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);

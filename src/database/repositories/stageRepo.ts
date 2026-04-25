@@ -20,22 +20,17 @@ export class StageRepo {
   }
 
   async updateData(projectId: number, stage: AuditStage | string, dataJson: string, status?: string): Promise<void> {
-    if (status) {
-      await this.db.run(
-        'UPDATE stage_progress SET data_json = ?, status = ?, updated_at = datetime(\'now\') WHERE project_id = ? AND stage = ?',
-        dataJson,
-        status,
-        projectId,
-        stage
-      );
-    } else {
-      await this.db.run(
-        'UPDATE stage_progress SET data_json = ?, updated_at = datetime(\'now\') WHERE project_id = ? AND stage = ?',
-        dataJson,
-        projectId,
-        stage
-      );
-    }
+    const finalStatus = status || 'in_progress';
+    await this.db.run(
+      `INSERT INTO stage_progress (project_id, stage, data_json, status, updated_at)
+       VALUES (?, ?, ?, ?, datetime('now'))
+       ON CONFLICT(project_id, stage)
+       DO UPDATE SET data_json = excluded.data_json, status = excluded.status, updated_at = datetime('now')`,
+      projectId,
+      stage,
+      dataJson,
+      finalStatus
+    );
   }
 
   async getStatus(projectId: number, stage: AuditStage): Promise<string | undefined> {

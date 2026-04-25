@@ -88,9 +88,7 @@ function loadFormData(data: Record<string, unknown>): void {
 onMounted(async () => {
   // 从项目信息自动填充
   if (props.projectInfo) {
-    if (!form.value.projectName) {
-      form.value.projectName = props.projectInfo.name;
-    }
+    form.value.projectName = form.value.projectName || props.projectInfo.name;
   }
   try {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);

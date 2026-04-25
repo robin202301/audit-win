@@ -6,10 +6,16 @@
       <span class="text-gray-800 font-medium">{{ stepTitle }}</span>
     </div>
 
+    <!-- Loading placeholder -->
+    <div v-if="!projectInfo" class="card text-center py-12 text-gray-500">
+      加载中...
+    </div>
+
     <!-- 原有6阶段使用专用组件 -->
     <component
-      v-if="isLegacyStage"
+      v-else-if="isLegacyStage"
       :is="legacyComponent"
+      :key="`${projectId}-${stage}`"
       :project-id="Number(projectId)"
       :project-info="projectInfo"
       :stage="stage"
@@ -19,6 +25,7 @@
     <!-- 新步骤使用通用表单 -->
     <GenericStageForm
       v-else-if="workflowStep"
+      :key="`${projectId}-${stage}`"
       :project-id="Number(projectId)"
       :step="workflowStep"
       :project-info="projectInfo"
@@ -31,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, onMounted, shallowRef, watch } from 'vue';
+import { computed, markRaw, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@stores/project';
 import { WORKFLOW_STEPS } from '@shared/types';
@@ -50,11 +57,10 @@ const store = useProjectStore();
 const projectId = props.id;
 const stage = props.stage;
 
-// 查找当前步骤在工作流中的定义
 const workflowStep = computed(() => WORKFLOW_STEPS.find(s => s.key === stage));
 const stepTitle = computed(() => workflowStep.value?.label || '未知阶段');
 
-// 项目信息
+// 阻塞式加载：确保 projectInfo 就绪后才渲染子组件
 const projectInfo = shallowRef<{ name: string; auditedTarget: string; auditType: string } | null>(null);
 
 onMounted(async () => {
@@ -68,7 +74,6 @@ onMounted(async () => {
   }
 });
 
-// 原有6阶段映射
 const LEGACY_STAGE_MAP: Record<string, object> = {
   notice: markRaw(StageNotice),
   survey: markRaw(StageSurvey),
@@ -80,10 +85,6 @@ const LEGACY_STAGE_MAP: Record<string, object> = {
 
 const isLegacyStage = computed(() => !!LEGACY_STAGE_MAP[stage]);
 const legacyComponent = shallowRef(LEGACY_STAGE_MAP[stage] || null);
-
-watch(() => props.stage, (newStage) => {
-  legacyComponent.value = LEGACY_STAGE_MAP[newStage] || null;
-});
 
 function goBack(): void {
   router.push({ name: 'project-detail', params: { id: projectId } });
