@@ -164,7 +164,8 @@ async function handleExport(): Promise<void> {
     // 校验模板占位符
     const exportData = { ...formData.value };
     if (props.projectInfo) {
-      if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
+      // 通知书步骤不使用项目名称作为 projectName 占位符
+      if (props.step.key !== 'notice' && !exportData.projectName) exportData.projectName = props.projectInfo.name;
       if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
       if (!exportData.auditProjectName) exportData.auditProjectName = props.projectInfo.name;
       if (!exportData.auditedLeaderName) exportData.auditedLeaderName = props.projectInfo.auditedTarget;

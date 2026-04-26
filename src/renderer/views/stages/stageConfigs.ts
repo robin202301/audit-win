@@ -34,10 +34,11 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     title: '审计通知书',
     template: 'tpl_audit_notice',
     exportFile: '审计通知书.docx',
-    autoFillFromProject: { auditProjectName: 'name', auditedLeaderUnit: 'auditedTarget' },
+    autoFillFromProject: { auditedLeaderUnit: 'auditedTarget' },
     fields: [
       { key: 'auditProjectName', label: '审计项目名称', fullSpan: true, placeholder: '例：关于开展XX同志经济责任审计的通知' },
-      { key: 'auditOrg', label: '审计机关全称' },
+      { key: 'auditOrg', label: '审计机关全称', placeholder: '例：XX市审计局' },
+      { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共XX市委审计委员会办公室' },
       { key: 'documentNumber', label: '文号', placeholder: '例：审（委）办经责通〔2024〕1号' },
       { key: 'auditedLeaderName', label: '被审计领导干部姓名' },
       { key: 'auditedLeaderUnit', label: '被审计领导干部所在单位' },
@@ -431,19 +432,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'projectName', label: '项目名称', fullSpan: true },
       { key: 'issuesContent', label: '未在报告中反映的问题清单', type: 'textarea', rows: 10, fullSpan: true, placeholder: '逐条列出未在审计报告中反映的问题及原因' },
       { key: 'compileDate', label: '填报日期', type: 'date' },
-    ],
-  },
-  audit_decision: {
-    title: '审计决定书',
-    template: 'tpl_audit_opinion',
-    exportFile: '审计决定书.docx',
-    autoFillFromProject: { auditedUnit: 'auditedTarget' },
-    fields: [
-      { key: 'documentNumber', label: '文号' },
-      { key: 'auditedUnit', label: '被审计单位' },
-      { key: 'decisionContent', label: '审计决定内容', type: 'textarea', rows: 10, fullSpan: true, placeholder: '审计处理决定内容' },
-      { key: 'decisionDate', label: '决定日期', type: 'date' },
-      { key: 'issueOrg', label: '发文机关' },
     ],
   },
   issue_ledger: {
