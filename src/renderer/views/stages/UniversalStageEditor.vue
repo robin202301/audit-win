@@ -63,9 +63,42 @@ onMounted(async () => {
   await loadTemplateText();
   // 2. 替换占位符
   applyPlaceholders();
-  // 3. 加载已保存的内容（覆盖模板内容）
+  // 3. 自动从前序步骤导入数据（追加到内容中）
+  if (props.step.importFrom && props.step.importFrom.length > 0) {
+    await autoImportFromPreviousStages();
+  }
+  // 4. 加载已保存的内容（覆盖模板和导入内容）
   await loadSavedContent();
 });
+
+async function autoImportFromPreviousStages(): Promise<void> {
+  if (!props.step.importFrom) return;
+  try {
+    const res = await window.electronAPI.stages.getByProjectId(props.projectId);
+    if (res.success && res.data) {
+      for (const srcKey of props.step.importFrom) {
+        const srcData = res.data.find((s: { stage: string }) => s.stage === srcKey);
+        if (srcData && srcData.dataJson && srcData.dataJson !== '{}') {
+          try {
+            const parsed = JSON.parse(srcData.dataJson);
+            // 将前序数据以注释形式追加到内容末尾
+            const importNotes = Object.entries(parsed)
+              .filter(([_, v]) => v)
+              .map(([k, v]) => `【${getStepLabel(srcKey)} - ${k}】${v}`)
+              .join('\n');
+            if (importNotes) {
+              content.value += '\n\n--- 前序数据引用 ---\n' + importNotes;
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
 
 async function loadTemplateText(): Promise<void> {
   if (!props.step.template) {
@@ -145,16 +178,28 @@ async function handleExport(): Promise<void> {
     return;
   }
   try {
+    const exportData: Record<string, unknown> = { content: content.value };
+    exportData.projectName = props.projectInfo.name;
+    exportData.auditedUnit = props.projectInfo.auditedTarget;
+    exportData.auditProjectName = props.projectInfo.name;
+    exportData.auditedLeaderName = props.projectInfo.auditedTarget;
+    exportData.auditType = props.projectInfo.auditType;
+    exportData.text = '';
+    exportData.name = '';
+    exportData.val = '';
+    exportData.shortText = '';
+
+    // 校验占位符
+    const validRes = await window.electronAPI.templates.validate(props.step.template, exportData);
+    if (validRes.success && validRes.data && validRes.data.missing && validRes.data.missing.length > 0) {
+      const missingList = validRes.data.missing.join('、');
+      if (!confirm(`以下占位符为空：${missingList}\n\n是否仍要继续导出？`)) {
+        return;
+      }
+    }
+
     const res = await window.electronAPI.documents.openSaveDialog(`${props.step.label}.docx`);
     if (res.success && res.data) {
-      const exportData = { content: content.value };
-      // 注入项目信息
-      exportData.projectName = props.projectInfo.name;
-      exportData.auditedUnit = props.projectInfo.auditedTarget;
-      exportData.auditProjectName = props.projectInfo.name;
-      exportData.auditedLeaderName = props.projectInfo.auditedTarget;
-      exportData.auditType = props.projectInfo.auditType;
-
       const genRes = await window.electronAPI.documents.generate(props.step.template, exportData, res.data.filePath);
       if (genRes.success) {
         alert('文档已导出：' + res.data!.filePath);

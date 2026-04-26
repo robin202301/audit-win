@@ -178,3 +178,49 @@ export async function readTemplateText(templateName: string): Promise<string> {
 
   return paragraphs.join('\n');
 }
+
+export function getTemplatePlaceholders(templateName: string): string[] {
+  try {
+    const templatePath = getTemplatePath(templateName);
+    const ext = path.extname(templatePath).toLowerCase();
+
+    if (ext === '.xlsx' || ext === '.xls') {
+      // 对于Excel模板，暂不校验占位符
+      return [];
+    }
+
+    const content = fs.readFileSync(templatePath);
+    const zip = new PizZip(content);
+    const docFile = zip.file('word/document.xml');
+    if (!docFile) return [];
+    const rawContent = (docFile as unknown as { _data: { getContent: () => string | ArrayBuffer } })._data.getContent();
+    const xml = typeof rawContent === 'string' ? rawContent : Buffer.from(rawContent).toString('utf8');
+
+    // 提取所有 {xxx} 占位符
+    const placeholders = new Set<string>();
+    const placeholderRegex = /\{([^{}]+)\}/g;
+    let match;
+    while ((match = placeholderRegex.exec(xml)) !== null) {
+      const name = match[1].trim();
+      // 过滤掉 docxtemplater 的特殊语法（如 #if, /if, #for, /for 等）
+      if (name && !name.startsWith('#') && !name.startsWith('/') && !name.startsWith('^')) {
+        placeholders.add(name);
+      }
+    }
+    return Array.from(placeholders);
+  } catch {
+    return [];
+  }
+}
+
+export function validateTemplatePlaceholders(
+  templateName: string,
+  data: Record<string, unknown>
+): { missing: string[]; all: string[] } {
+  const all = getTemplatePlaceholders(templateName);
+  const missing = all.filter(key => {
+    const val = data[key];
+    return val === undefined || val === null || val === '';
+  });
+  return { all, missing };
+}

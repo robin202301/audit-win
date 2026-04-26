@@ -10,6 +10,7 @@ export interface FormField {
 
 export interface StageFormConfig {
   title: string;           // 表单标题
+  template: string;        // 导出模板名（对应 resources/templates/ 中的文件名，不含扩展名）
   exportFile: string;      // 导出文件名
   fields: FormField[];
   autoFillFromProject?: Record<string, string>;  // 从项目信息自动填充：formKey -> projectKey
@@ -19,6 +20,7 @@ export interface StageFormConfig {
 export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   work_plan: {
     title: '审计工作方案',
+    template: 'tpl_audit_plan',
     exportFile: '审计工作方案.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -30,6 +32,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   notice: {
     title: '审计通知书',
+    template: 'tpl_audit_notice',
     exportFile: '审计通知书.docx',
     autoFillFromProject: { auditProjectName: 'name', auditedLeaderUnit: 'auditedTarget' },
     fields: [
@@ -50,6 +53,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   eight_prohibitions: {
     title: '审计"八不准"工作纪律',
+    template: 'tpl_audit_eight_prohibitions_requirements',
     exportFile: '审计八不准工作纪律.docx',
     autoFillFromProject: {},
     defaultValues: {
@@ -73,6 +77,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   delivery_receipt: {
     title: '审计文书送达回证',
+    template: 'tpl_audit_document_delivery_receipt',
     exportFile: '审计文书送达回证.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -90,6 +95,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   audit_announcement: {
     title: '经济责任审计公示',
+    template: 'tpl_er_audit_announcement',
     exportFile: '经济责任审计公示.docx',
     autoFillFromProject: { projectName: 'name', auditedLeaderName: 'auditedTarget' },
     fields: [
@@ -108,6 +114,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   commitment_letter: {
     title: '被审计单位承诺书',
+    template: 'tpl_auditee_commitment',
     exportFile: '被审计单位承诺书.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget' },
     fields: [
@@ -123,6 +130,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   survey: {
     title: '调查了解记录',
+    template: 'tpl_investigation_record_auditee_basic_info',
     exportFile: '调查了解记录.xlsx',
     autoFillFromProject: { unitName: 'auditedTarget' },
     fields: [
@@ -148,6 +156,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   plan: {
     title: '审计实施方案',
+    template: 'tpl_audit_plan',
     exportFile: '审计实施方案.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -164,6 +173,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   task_list: {
     title: '任务清单',
+    template: 'tpl_task_list',
     exportFile: '任务清单.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -174,6 +184,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   interview_record: {
     title: '谈话记录',
+    template: 'tpl_investigation_interview_record',
     exportFile: '谈话记录.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -192,6 +203,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   evidence: {
     title: '审计取证单',
+    template: 'tpl_audit_evidence',
     exportFile: '审计取证单.docx',
     autoFillFromProject: { projectName: 'name', auditedUnit: 'auditedTarget' },
     fields: [
@@ -210,6 +222,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   working_paper: {
     title: '审计底稿',
+    template: 'tpl_working_paper',
     exportFile: '审计底稿.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -231,6 +244,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   task_list_completion: {
     title: '审计任务清单完成情况',
+    template: 'tpl_task_list_completion',
     exportFile: '审计任务清单完成情况.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -241,6 +255,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   report: {
     title: '审计组审计报告',
+    template: 'tpl_final_report',
     exportFile: '审计组审计报告.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget', auditProject: 'name' },
     fields: [
@@ -268,6 +283,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   report_consultation: {
     title: '审计报告征求意见书',
+    template: 'tpl_er_audit_report_consultation',
     exportFile: '审计报告征求意见书.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget', projectName: 'name' },
     fields: [
@@ -286,6 +302,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   audit_opinion: {
     title: '审核意见',
+    template: 'tpl_audit_opinion',
     exportFile: '审核意见.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -297,6 +314,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   review_opinion: {
     title: '复核意见',
+    template: 'tpl_review_opinion',
     exportFile: '复核意见.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -308,6 +326,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   adjudication_opinion: {
     title: '审理意见',
+    template: 'tpl_adjudication_opinion',
     exportFile: '审理意见.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -319,6 +338,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   adjudication_meeting: {
     title: '审理会纪要',
+    template: 'tpl_adjudication_meeting_minutes',
     exportFile: '审理会纪要.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -333,6 +353,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   draft_cover: {
     title: '报告代拟稿封面',
+    template: 'tpl_draft_cover',
     exportFile: '报告代拟稿封面.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -347,6 +368,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   external_report: {
     title: '对外报告',
+    template: 'tpl_final_report',
     exportFile: '对外报告.docx',
     autoFillFromProject: { projectName: 'name', auditedUnit: 'auditedTarget' },
     fields: [
@@ -366,6 +388,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   audit_decision: {
     title: '审计决定书',
+    template: 'tpl_audit_opinion',
     exportFile: '审计决定书.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget' },
     fields: [
@@ -383,6 +406,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   result_report: {
     title: '经责审计结果报告',
+    template: 'tpl_er_result_report',
     exportFile: '经济责任审计结果报告.docx',
     autoFillFromProject: { projectName: 'name', auditedLeaderName: 'auditedTarget' },
     fields: [
@@ -400,6 +424,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   issues_not_reflected: {
     title: '未在审计报告中反映问题清单',
+    template: 'tpl_issues_not_reflected_in_audit_report',
     exportFile: '未在审计报告中反映问题清单.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -410,6 +435,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   audit_decision: {
     title: '审计决定书',
+    template: 'tpl_audit_opinion',
     exportFile: '审计决定书.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget' },
     fields: [
@@ -422,6 +448,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   issue_ledger: {
     title: '审计问题台账',
+    template: 'tpl_issues_not_reflected_in_audit_report',
     exportFile: '审计问题台账.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -432,6 +459,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   archive_catalog: {
     title: '审计档案目录',
+    template: 'tpl_issues_not_reflected_in_audit_report',
     exportFile: '审计档案目录.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [

@@ -56,6 +56,15 @@ const api = {
       ipcRenderer.invoke('files:get-by-entity', entityType, entityId),
     delete: (id: number): Promise<IPCResponse> => ipcRenderer.invoke('files:delete', id),
   },
+  // 取证单与底稿关联
+  evidencePaperLinks: {
+    getByProjectId: (projectId: number): Promise<IPCResponse> =>
+      ipcRenderer.invoke('evidence-paper-links:get-by-project-id', projectId),
+    getByEvidence: (evidenceId: number): Promise<IPCResponse> =>
+      ipcRenderer.invoke('evidence-paper-links:get-by-evidence', evidenceId),
+    create: (data: { projectId: number; evidenceId: number; workingPaperId: number }): Promise<IPCResponse> =>
+      ipcRenderer.invoke('evidence-paper-links:create', data),
+  },
   // 文档生成
   documents: {
     generate: (templateName: string, data: Record<string, unknown>, outputPath: string): Promise<IPCResponse> =>
@@ -71,6 +80,8 @@ const api = {
   templates: {
     readTemplateText: (templateName: string): Promise<IPCResponse> =>
       ipcRenderer.invoke('templates:read-text', templateName),
+    validate: (templateName: string, data: Record<string, unknown>): Promise<IPCResponse> =>
+      ipcRenderer.invoke('templates:validate', templateName, data),
   },
 };
 

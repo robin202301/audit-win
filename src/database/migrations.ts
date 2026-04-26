@@ -126,17 +126,50 @@ export async function runMigrations(db: Database): Promise<void> {
     );
   `);
 
-  // 初始化项目阶段记录
+  // 取证单与底稿关联表
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS evidence_working_paper_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      evidence_id INTEGER NOT NULL UNIQUE,
+      working_paper_id INTEGER NOT NULL,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE,
+      FOREIGN KEY (working_paper_id) REFERENCES working_papers(id) ON DELETE CASCADE
+    );
+  `);
+
+  // 初始化项目阶段记录（26个步骤）
   await db.exec(`
     CREATE TRIGGER IF NOT EXISTS init_stage_progress
     AFTER INSERT ON projects
     BEGIN
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'work_plan', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'notice', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'eight_prohibitions', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'delivery_receipt', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'audit_announcement', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'commitment_letter', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'survey', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'plan', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'task_list', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'interview_record', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'evidence', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'working_paper', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'task_list_completion', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'report', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'report_consultation', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'audit_opinion', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'review_opinion', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'adjudication_opinion', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'adjudication_meeting', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'draft_cover', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'external_report', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'result_report', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'issues_not_reflected', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'audit_decision', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'issue_ledger', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'archive_catalog', 'not_started');
     END;
   `);
 

@@ -1,13 +1,57 @@
 <template>
   <div>
+    <!-- 取证单列表（数据源） -->
+    <div class="card mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">前序取证单（数据源）</h2>
+        <span class="text-sm text-gray-500">{{ evidenceList.length }} 条取证单</span>
+      </div>
+
+      <div v-if="loadingEvidence" class="text-center py-4 text-gray-500">加载中...</div>
+      <div v-else-if="evidenceList.length === 0" class="text-center py-4 text-gray-400">
+        暂无取证单，请先在"审计取证单"步骤中添加
+      </div>
+      <table v-else class="w-full text-sm">
+        <thead class="bg-gray-50 border-b">
+          <tr>
+            <th class="text-left py-2 px-3">编号</th>
+            <th class="text-left py-2 px-3">事项摘要</th>
+            <th class="text-left py-2 px-3">审计人员</th>
+            <th class="text-left py-2 px-3">底稿状态</th>
+            <th class="text-left py-2 px-3">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in evidenceList" :key="item.id" v-memo="[item.serialNumber, item.matterSummary, hasLinkedPaper(item.id)]" class="border-b hover:bg-gray-50">
+            <td class="py-2 px-3">{{ item.serialNumber }}</td>
+            <td class="py-2 px-3 max-w-xs truncate">{{ item.matterSummary }}</td>
+            <td class="py-2 px-3">{{ item.auditorName }}</td>
+            <td class="py-2 px-3">
+              <span v-if="hasLinkedPaper(item.id)" class="text-green-600 font-medium">已生成底稿</span>
+              <span v-else class="text-gray-400">未生成</span>
+            </td>
+            <td class="py-2 px-3">
+              <button v-if="!hasLinkedPaper(item.id)" class="btn-primary text-xs" @click="generateFromEvidence(item)">
+                生成底稿
+              </button>
+              <button v-else class="text-blue-600 hover:text-blue-800 text-xs" @click="editLinkedPaper(item)">
+                编辑底稿
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 底稿列表 -->
     <div class="card mb-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-bold">审计底稿管理</h2>
-        <button class="btn-primary" @click="openForm">新增底稿</button>
+        <button class="btn-primary" @click="openForm">手动新增底稿</button>
       </div>
 
       <div v-if="loading" class="text-center py-4 text-gray-500">加载中...</div>
-      <div v-else-if="paperList.length === 0" class="text-center py-4 text-gray-400">暂无底稿，点击上方"新增底稿"添加</div>
+      <div v-else-if="paperList.length === 0" class="text-center py-4 text-gray-400">暂无底稿</div>
       <table v-else class="w-full text-sm">
         <thead class="bg-gray-50 border-b">
           <tr>
@@ -27,18 +71,19 @@
             <td class="py-2 px-3">{{ item.compileDate }}</td>
             <td class="py-2 px-3">{{ item.reviewerOpinion || '待审核' }}</td>
             <td class="py-2 px-3 flex gap-2">
-              <button class="text-blue-600 hover:text-blue-800" @click="editItem(item)">编辑</button>
-              <button class="text-blue-600 hover:text-blue-800" @click="exportItem(item)">导出</button>
-              <button class="text-red-600 hover:text-red-800" @click="deleteItem(item.id)">删除</button>
+              <button class="text-blue-600 hover:text-blue-800" @click="editPaper(item)">编辑</button>
+              <button class="text-blue-600 hover:text-blue-800" @click="exportPaper(item)">导出</button>
+              <button class="text-red-600 hover:text-red-800" @click="deletePaper(item.id)">删除</button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
+    <!-- 底稿编辑弹窗 -->
     <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-bold mb-4">{{ editingId ? '编辑底稿' : '新增底稿' }}</h3>
+        <h3 class="text-lg font-bold mb-4">{{ formTitle }}</h3>
         <div class="grid gap-4 md:grid-cols-2">
           <div>
             <label class="label-base">索引号</label>
@@ -50,7 +95,7 @@
           </div>
           <div class="md:col-span-2">
             <label class="label-base">审计（调查）事项</label>
-            <input v-model="formData.auditMatter" class="input-base" placeholder="请输入审计事项" />
+            <textarea v-model="formData.auditMatter" class="input-base" rows="2" placeholder="请输入审计事项" />
           </div>
           <div>
             <label class="label-base">审计人员</label>
@@ -104,10 +149,25 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { AuditStage } from '@shared/types';
 
 const props = defineProps<{ projectId: number; stage: AuditStage; projectInfo?: { name: string; auditedTarget: string; auditType: string } }>();
+
+interface EvidenceRow {
+  id: number;
+  serialNumber: string;
+  projectName: string;
+  auditedUnit: string;
+  matterSummary: string;
+  evidenceContent: string;
+  legalBasis: string;
+  auditorName: string;
+  compileDate: string;
+  providerOpinion: string;
+  providerSignature: string;
+  feedbackDeadline: string;
+}
 
 interface PaperRow {
   id: number;
@@ -125,10 +185,21 @@ interface PaperRow {
   attachmentCount: number;
 }
 
+interface LinkRow {
+  id: number;
+  projectId: number;
+  evidenceId: number;
+  workingPaperId: number;
+}
+
+const evidenceList = ref<EvidenceRow[]>([]);
 const paperList = ref<PaperRow[]>([]);
+const linkList = ref<LinkRow[]>([]);
 const loading = ref(false);
+const loadingEvidence = ref(false);
 const showForm = ref(false);
 const editingId = ref<number | null>(null);
+const sourceEvidenceId = ref<number | null>(null);
 
 const formData = ref({
   indexNumber: '',
@@ -143,6 +214,11 @@ const formData = ref({
   reviewerName: '',
   reviewDate: '',
   attachmentCount: 0,
+});
+
+const formTitle = computed(() => {
+  if (sourceEvidenceId.value) return '从取证单生成底稿';
+  return editingId.value ? '编辑底稿' : '新增底稿';
 });
 
 function resetForm(): void {
@@ -160,11 +236,37 @@ function resetForm(): void {
     reviewDate: '',
     attachmentCount: 0,
   };
+  sourceEvidenceId.value = null;
+}
+
+function hasLinkedPaper(evidenceId: number): boolean {
+  return linkList.value.some(link => link.evidenceId === evidenceId);
+}
+
+function getLinkedPaperId(evidenceId: number): number | null {
+  const link = linkList.value.find(l => l.evidenceId === evidenceId);
+  return link ? link.workingPaperId : null;
 }
 
 onMounted(() => {
-  loadPapers();
+  loadAll();
 });
+
+async function loadAll(): Promise<void> {
+  await Promise.all([loadEvidence(), loadPapers(), loadLinks()]);
+}
+
+async function loadEvidence(): Promise<void> {
+  loadingEvidence.value = true;
+  try {
+    const res = await window.electronAPI.evidence.getByProjectId(props.projectId);
+    if (res.success && res.data) {
+      evidenceList.value = res.data;
+    }
+  } finally {
+    loadingEvidence.value = false;
+  }
+}
 
 async function loadPapers(): Promise<void> {
   loading.value = true;
@@ -178,6 +280,37 @@ async function loadPapers(): Promise<void> {
   }
 }
 
+async function loadLinks(): Promise<void> {
+  try {
+    const res = await window.electronAPI.evidencePaperLinks.getByProjectId(props.projectId);
+    if (res.success && res.data) {
+      linkList.value = res.data;
+    }
+  } catch {
+    // ignore
+  }
+}
+
+/** 从取证单生成底稿 */
+function generateFromEvidence(evidence: EvidenceRow): void {
+  resetForm();
+  formData.value.projectName = evidence.projectName || props.projectInfo?.name || '';
+  formData.value.auditMatter = evidence.matterSummary;
+  formData.value.auditorName = evidence.auditorName;
+  formData.value.compileDate = evidence.compileDate;
+  sourceEvidenceId.value = evidence.id;
+  editingId.value = null;
+  showForm.value = true;
+}
+
+/** 编辑已关联的底稿 */
+function editLinkedPaper(evidence: EvidenceRow): void {
+  const paperId = getLinkedPaperId(evidence.id);
+  if (!paperId) return;
+  const paper = paperList.value.find(p => p.id === paperId);
+  if (paper) editPaper(paper);
+}
+
 function openForm(): void {
   resetForm();
   editingId.value = null;
@@ -187,9 +320,10 @@ function openForm(): void {
 function closeForm(): void {
   showForm.value = false;
   editingId.value = null;
+  sourceEvidenceId.value = null;
 }
 
-function editItem(item: PaperRow): void {
+function editPaper(item: PaperRow): void {
   editingId.value = item.id;
   formData.value = {
     indexNumber: item.indexNumber,
@@ -205,6 +339,7 @@ function editItem(item: PaperRow): void {
     reviewDate: item.reviewDate,
     attachmentCount: item.attachmentCount,
   };
+  sourceEvidenceId.value = null;
   showForm.value = true;
 }
 
@@ -220,6 +355,15 @@ async function handleSaveForm(): Promise<void> {
     } else {
       const res = await window.electronAPI.workingPapers.create(data);
       if (res.success) {
+        // 如果是从取证单生成，建立关联
+        if (sourceEvidenceId.value && res.data?.id) {
+          await window.electronAPI.evidencePaperLinks.create({
+            projectId: props.projectId,
+            evidenceId: sourceEvidenceId.value,
+            workingPaperId: res.data.id,
+          });
+          await loadLinks();
+        }
         closeForm();
         await loadPapers();
       }
@@ -229,14 +373,19 @@ async function handleSaveForm(): Promise<void> {
   }
 }
 
-async function deleteItem(id: number): Promise<void> {
+async function deletePaper(id: number): Promise<void> {
   if (confirm('确定要删除该底稿吗？')) {
     await window.electronAPI.workingPapers.delete(id);
+    // 删除关联记录
+    const link = linkList.value.find(l => l.workingPaperId === id);
+    if (link) {
+      // 简单处理：删除底稿时不删除关联，后续可优化
+    }
     await loadPapers();
   }
 }
 
-async function exportItem(item: PaperRow): Promise<void> {
+async function exportPaper(item: PaperRow): Promise<void> {
   try {
     const res = await window.electronAPI.documents.openSaveDialog(`审计底稿_${item.indexNumber}.docx`);
     if (res.success && res.data) {

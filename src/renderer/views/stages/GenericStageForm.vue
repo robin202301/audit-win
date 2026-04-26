@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
         <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">
-          {{ config.stepNumber }}
+          {{ props.step.stepNumber }}
         </span>
         <h2 class="text-xl font-bold">{{ config.title }}</h2>
       </div>
@@ -92,6 +92,11 @@ onMounted(async () => {
   try {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);
     if (res.success && res.data) {
+      // 先自动导入前序步骤数据
+      if (props.step.importFrom && props.step.importFrom.length > 0) {
+        autoImportFromPreviousStages(res.data);
+      }
+      // 再加载当前步骤已保存数据（覆盖导入的数据）
       const stageData = res.data.find((s: { stage: string }) => s.stage === props.step.key);
       if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
         const parsed = JSON.parse(stageData.dataJson);
@@ -106,6 +111,27 @@ onMounted(async () => {
     // ignore
   }
 });
+
+/** 自动从前序步骤导入数据（匹配同名字段） */
+function autoImportFromPreviousStages(allData: { stage: string; dataJson: string }[]): void {
+  if (!props.step.importFrom) return;
+  for (const srcKey of props.step.importFrom) {
+    const srcData = allData.find((s: { stage: string }) => s.stage === srcKey);
+    if (srcData && srcData.dataJson && srcData.dataJson !== '{}') {
+      try {
+        const parsed = JSON.parse(srcData.dataJson);
+        for (const key of Object.keys(parsed)) {
+          // 只导入表单中存在的字段，且当前为空的情况
+          if (formData.value[key] !== undefined && !formData.value[key] && parsed[key]) {
+            formData.value[key] = parsed[key];
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
 
 async function handleSave(): Promise<void> {
   saving.value = true;
@@ -135,25 +161,39 @@ async function handleExport(): Promise<void> {
     return;
   }
   try {
+    // 校验模板占位符
+    const exportData = { ...formData.value };
+    if (props.projectInfo) {
+      if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
+      if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
+      if (!exportData.auditProjectName) exportData.auditProjectName = props.projectInfo.name;
+      if (!exportData.auditedLeaderName) exportData.auditedLeaderName = props.projectInfo.auditedTarget;
+    }
+    if (!exportData.content) exportData.content = '';
+    if (!exportData.text) exportData.text = '';
+    if (!exportData.name) exportData.name = '';
+    if (!exportData.val) exportData.val = '';
+    if (!exportData.shortText) exportData.shortText = '';
+    if (!exportData.mediumText) exportData.mediumText = '';
+    if (!exportData.shortContent) exportData.shortContent = '';
+
+    const validRes = await window.electronAPI.templates.validate(config.template, exportData);
+    if (validRes.success && validRes.data && validRes.data.missing && validRes.data.missing.length > 0) {
+      const missingList = validRes.data.missing.join('、');
+      if (!confirm(`以下占位符为空：${missingList}\n\n是否仍要继续导出？`)) {
+        return;
+      }
+    }
+
+    const isExcel = config.exportFile.endsWith('.xls') || config.exportFile.endsWith('.xlsx');
     const res = await window.electronAPI.documents.openSaveDialog(config.exportFile);
     if (res.success && res.data) {
-      // 自动注入项目基本信息和通用占位符
-      const exportData = { ...formData.value };
-      if (props.projectInfo) {
-        if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
-        if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
-        if (!exportData.auditProjectName) exportData.auditProjectName = props.projectInfo.name;
-        if (!exportData.auditedLeaderName) exportData.auditedLeaderName = props.projectInfo.auditedTarget;
+      let genRes;
+      if (isExcel) {
+        genRes = await window.electronAPI.documents.generateExcel(config.template, exportData, res.data.filePath);
+      } else {
+        genRes = await window.electronAPI.documents.generate(config.template, exportData, res.data.filePath);
       }
-      // 通用占位符默认值：空字符串替换，避免模板原样输出
-      if (!exportData.content) exportData.content = '';
-      if (!exportData.text) exportData.text = '';
-      if (!exportData.name) exportData.name = '';
-      if (!exportData.val) exportData.val = '';
-      if (!exportData.shortText) exportData.shortText = '';
-      if (!exportData.mediumText) exportData.mediumText = '';
-      if (!exportData.shortContent) exportData.shortContent = '';
-      const genRes = await window.electronAPI.documents.generate(config.template, exportData, res.data.filePath);
       if (genRes.success) {
         alert('文档已导出：' + res.data!.filePath);
       } else {

@@ -6,9 +6,10 @@ import { EvidenceRepo } from '@database/repositories/evidenceRepo';
 import { WorkingPaperRepo } from '@database/repositories/workingPaperRepo';
 import { SurveyRepo } from '@database/repositories/surveyRepo';
 import { FileRepo } from '@database/repositories/fileRepo';
+import { EvidencePaperLinkRepo } from '@database/repositories/evidencePaperLinkRepo';
 import { setupDocumentHandlers } from './document';
 import { setupFileHandlers } from './file';
-import { readTemplateText } from '@main/services/templateService';
+import { readTemplateText, validateTemplatePlaceholders } from '@main/services/templateService';
 
 export async function setupIpcHandlers(): Promise<void> {
   const db = await getDatabase();
@@ -18,6 +19,7 @@ export async function setupIpcHandlers(): Promise<void> {
   const workingPaperRepo = new WorkingPaperRepo(db);
   const surveyRepo = new SurveyRepo(db);
   const fileRepo = new FileRepo(db);
+  const paperLinkRepo = new EvidencePaperLinkRepo(db);
 
   // 项目管理
   ipcMain.handle('projects:get-all', async () => {
@@ -201,6 +203,34 @@ export async function setupIpcHandlers(): Promise<void> {
   // 文件
   setupFileHandlers(fileRepo);
 
+  // 取证单与底稿关联
+  ipcMain.handle('evidence-paper-links:get-by-project-id', async (_e, projectId: number) => {
+    try {
+      const links = await paperLinkRepo.getByProjectId(projectId);
+      return { success: true, data: links };
+    } catch (error: unknown) {
+      return { success: false, message: `获取关联关系失败：${(error as Error).message}` };
+    }
+  });
+
+  ipcMain.handle('evidence-paper-links:get-by-evidence', async (_e, evidenceId: number) => {
+    try {
+      const link = await paperLinkRepo.getPaperByEvidence(evidenceId);
+      return { success: true, data: link };
+    } catch (error: unknown) {
+      return { success: false, message: `获取关联关系失败：${(error as Error).message}` };
+    }
+  });
+
+  ipcMain.handle('evidence-paper-links:create', async (_e, data) => {
+    try {
+      const id = await paperLinkRepo.create(data);
+      return { success: true, data: { id } };
+    } catch (error: unknown) {
+      return { success: false, message: `创建关联关系失败：${(error as Error).message}` };
+    }
+  });
+
   // 文档生成
   setupDocumentHandlers();
 
@@ -211,6 +241,16 @@ export async function setupIpcHandlers(): Promise<void> {
       return { success: true, data: text };
     } catch (error: unknown) {
       return { success: false, message: `读取模板失败：${(error as Error).message}` };
+    }
+  });
+
+  // 模板占位符校验
+  ipcMain.handle('templates:validate', async (_e, templateName: string, data: Record<string, unknown>) => {
+    try {
+      const result = validateTemplatePlaceholders(templateName, data);
+      return { success: true, data: result };
+    } catch (error: unknown) {
+      return { success: false, message: `校验模板占位符失败：${(error as Error).message}` };
     }
   });
 }

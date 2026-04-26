@@ -11,23 +11,31 @@
       加载中...
     </div>
 
-    <!-- 原有6阶段使用专用组件 -->
+    <!-- 取证单/底稿使用专用列表管理组件（1:N关系） -->
     <component
-      v-else-if="isLegacyStage"
-      :is="legacyComponent"
+      v-else-if="isListComponent"
+      :is="listComponent"
       :key="`${projectId}-${stage}`"
       :project-id="Number(projectId)"
       :project-info="projectInfo"
       :stage="stage"
-      @saved="handleSaved"
     />
 
-    <!-- 新步骤使用通用编辑器 -->
-    <UniversalStageEditor
+    <!-- 其余所有步骤使用通用表单（结构化字段 + 自动导入前序数据） -->
+    <GenericStageForm
       v-else-if="workflowStep"
       :key="`${projectId}-${stage}`"
       :project-id="Number(projectId)"
       :step="workflowStep"
+      :project-info="projectInfo"
+    />
+
+    <!-- 无配置的步骤使用大输入框编辑器 -->
+    <UniversalStageEditor
+      v-else-if="fallbackStep"
+      :key="`${projectId}-${stage}`"
+      :project-id="Number(projectId)"
+      :step="fallbackStep"
       :project-info="projectInfo"
     />
 
@@ -41,14 +49,12 @@
 import { computed, markRaw, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@stores/project';
-import { WORKFLOW_STEPS } from '@shared/types';
-import StageNotice from './StageNotice.vue';
-import StageSurvey from './StageSurvey.vue';
-import StagePlan from './StagePlan.vue';
+import { WORKFLOW_STEPS, AuditStage } from '@shared/types';
 import StageEvidence from './StageEvidence.vue';
 import StageWorkingPaper from './StageWorkingPaper.vue';
-import StageReport from './StageReport.vue';
+import GenericStageForm from './stages/GenericStageForm.vue';
 import UniversalStageEditor from './stages/UniversalStageEditor.vue';
+import { STAGE_FORM_CONFIGS } from './stages/stageConfigs';
 
 const props = defineProps<{ id: string; stage: string }>();
 const router = useRouter();
@@ -58,9 +64,14 @@ const projectId = props.id;
 const stage = props.stage;
 
 const workflowStep = computed(() => WORKFLOW_STEPS.find(s => s.key === stage));
+const fallbackStep = computed(() => {
+  // 对于不在 STAGE_FORM_CONFIGS 中的步骤，返回一个最小配置
+  const step = WORKFLOW_STEPS.find(s => s.key === stage);
+  if (step && !STAGE_FORM_CONFIGS[step.key]) return step;
+  return undefined;
+});
 const stepTitle = computed(() => workflowStep.value?.label || '未知阶段');
 
-// 阻塞式加载：确保 projectInfo 就绪后才渲染子组件
 const projectInfo = shallowRef<{ name: string; auditedTarget: string; auditType: string } | null>(null);
 
 onMounted(async () => {
@@ -74,23 +85,16 @@ onMounted(async () => {
   }
 });
 
-const LEGACY_STAGE_MAP: Record<string, object> = {
-  notice: markRaw(StageNotice),
-  survey: markRaw(StageSurvey),
-  plan: markRaw(StagePlan),
+// 仅取证单和底稿使用专用列表组件（1:N 关系，需要关联管理）
+const LIST_STAGES: Record<string, object> = {
   evidence: markRaw(StageEvidence),
   working_paper: markRaw(StageWorkingPaper),
-  report: markRaw(StageReport),
 };
 
-const isLegacyStage = computed(() => !!LEGACY_STAGE_MAP[stage]);
-const legacyComponent = shallowRef(LEGACY_STAGE_MAP[stage] || null);
+const isListComponent = computed(() => !!LIST_STAGES[stage]);
+const listComponent = shallowRef(LIST_STAGES[stage] || null);
 
 function goBack(): void {
-  router.push({ name: 'project-detail', params: { id: projectId } });
-}
-
-function handleSaved(): void {
   router.push({ name: 'project-detail', params: { id: projectId } });
 }
 </script>
