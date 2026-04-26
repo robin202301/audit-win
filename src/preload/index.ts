@@ -67,6 +67,11 @@ const api = {
     parseWord: (arrayBuffer: ArrayBuffer): Promise<IPCResponse> =>
       ipcRenderer.invoke('documents:parse-word', arrayBuffer),
   },
+  // 模板读取
+  templates: {
+    readTemplateText: (templateName: string): Promise<IPCResponse> =>
+      ipcRenderer.invoke('templates:read-text', templateName),
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', api);

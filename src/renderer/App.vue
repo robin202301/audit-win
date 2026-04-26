@@ -19,7 +19,7 @@
       </div>
     </header>
     <main class="flex-1">
-      <router-view />
+      <router-view :key="$route.fullPath" />
     </main>
   </div>
 </template>

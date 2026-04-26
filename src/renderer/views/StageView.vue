@@ -22,8 +22,8 @@
       @saved="handleSaved"
     />
 
-    <!-- 新步骤使用通用表单 -->
-    <GenericStageForm
+    <!-- 新步骤使用通用编辑器 -->
+    <UniversalStageEditor
       v-else-if="workflowStep"
       :key="`${projectId}-${stage}`"
       :project-id="Number(projectId)"
@@ -48,7 +48,7 @@ import StagePlan from './StagePlan.vue';
 import StageEvidence from './StageEvidence.vue';
 import StageWorkingPaper from './StageWorkingPaper.vue';
 import StageReport from './StageReport.vue';
-import GenericStageForm from './stages/GenericStageForm.vue';
+import UniversalStageEditor from './stages/UniversalStageEditor.vue';
 
 const props = defineProps<{ id: string; stage: string }>();
 const router = useRouter();

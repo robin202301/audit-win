@@ -8,6 +8,7 @@ import { SurveyRepo } from '@database/repositories/surveyRepo';
 import { FileRepo } from '@database/repositories/fileRepo';
 import { setupDocumentHandlers } from './document';
 import { setupFileHandlers } from './file';
+import { readTemplateText } from '@main/services/templateService';
 
 export async function setupIpcHandlers(): Promise<void> {
   const db = await getDatabase();
@@ -202,4 +203,14 @@ export async function setupIpcHandlers(): Promise<void> {
 
   // 文档生成
   setupDocumentHandlers();
+
+  // 模板读取
+  ipcMain.handle('templates:read-text', async (_e, templateName: string) => {
+    try {
+      const text = await readTemplateText(templateName);
+      return { success: true, data: text };
+    } catch (error: unknown) {
+      return { success: false, message: `读取模板失败：${(error as Error).message}` };
+    }
+  });
 }

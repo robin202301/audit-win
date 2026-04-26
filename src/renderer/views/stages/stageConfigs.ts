@@ -13,6 +13,7 @@ export interface StageFormConfig {
   exportFile: string;      // 导出文件名
   fields: FormField[];
   autoFillFromProject?: Record<string, string>;  // 从项目信息自动填充：formKey -> projectKey
+  defaultValues?: Record<string, string>;  // 表单字段默认值（通常来自模板内容）
 }
 
 export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
@@ -51,8 +52,23 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     title: '审计"八不准"工作纪律',
     exportFile: '审计八不准工作纪律.docx',
     autoFillFromProject: {},
+    defaultValues: {
+      content: `审计"八不准"工作纪律
+
+一、不准由被审计单位和个人报销或补贴住宿、餐饮、交通、通讯、医疗等费用。
+二、不准接受被审计单位和个人赠送的礼品礼金，或未经批准通过授课等方式获取报酬。
+三、不准参加被审计单位和个人安排的宴请、娱乐、旅游等活动。
+四、不准利用审计工作知悉的国家秘密、商业秘密和内部信息谋取利益。
+五、不准利用审计职权干预被审计单位依法管理的资金、资产、资源的审批或分配使用。
+六、不准向被审计单位推销商品或介绍业务。
+七、不准接受被审计单位和个人的请托干预审计工作。
+八、不准向被审计单位和个人提出任何与审计工作无关的要求。
+
+违反上述工作要求和工作纪律的，严格按照规定追究责任。
+举报电话：0482-8399314`,
+    },
     fields: [
-      { key: 'content', label: '八不准内容', type: 'textarea', rows: 15, fullSpan: true, placeholder: '自动生成标准八不准内容，可编辑修改' },
+      { key: 'content', label: '八不准内容', type: 'textarea', rows: 18, fullSpan: true, placeholder: '自动生成标准八不准内容，可编辑修改' },
     ],
   },
   delivery_receipt: {

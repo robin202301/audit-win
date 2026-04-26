@@ -73,9 +73,9 @@ const formData = ref<Record<string, string>>({});
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 
-// 初始化表单字段
+// 初始化表单字段（优先使用配置中的默认值）
 for (const field of config.fields) {
-  formData.value[field.key] = '';
+  formData.value[field.key] = (config.defaultValues as Record<string, string>)?.[field.key] || '';
 }
 
 onMounted(async () => {
