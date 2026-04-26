@@ -5,15 +5,18 @@ export class StageRepo {
   constructor(private db: Database) {}
 
   async getByProjectId(projectId: number): Promise<StageProgress[]> {
-    return this.db.all<StageProgress[]>(
-      'SELECT * FROM stage_progress WHERE project_id = ? ORDER BY id',
+    const rows = await this.db.all<StageProgress[]>(
+      `SELECT id, project_id AS projectId, stage, data_json AS dataJson, status, updated_at AS updatedAt
+       FROM stage_progress WHERE project_id = ? ORDER BY id`,
       projectId
     );
+    return rows;
   }
 
-  async getByProjectAndStage(projectId: number, stage: AuditStage): Promise<StageProgress | undefined> {
+  async getByProjectAndStage(projectId: number, stage: AuditStage | string): Promise<StageProgress | undefined> {
     return this.db.get<StageProgress>(
-      'SELECT * FROM stage_progress WHERE project_id = ? AND stage = ?',
+      `SELECT id, project_id AS projectId, stage, data_json AS dataJson, status, updated_at AS updatedAt
+       FROM stage_progress WHERE project_id = ? AND stage = ?`,
       projectId,
       stage
     );

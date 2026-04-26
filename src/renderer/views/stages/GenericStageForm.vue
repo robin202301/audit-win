@@ -79,7 +79,6 @@ for (const field of config.fields) {
 }
 
 onMounted(async () => {
-  console.log('[LOAD] stage:', props.step.key, 'projectId:', props.projectId);
   // 从项目信息自动填充
   if (props.projectInfo && config.autoFillFromProject) {
     for (const [formKey, projectKey] of Object.entries(config.autoFillFromProject)) {
@@ -106,16 +105,10 @@ onMounted(async () => {
             formData.value[key] = parsed[key];
           }
         }
-      } else if (stageData) {
-        console.log('[LOAD] stage', props.step.key, 'has empty or no data:', stageData.dataJson);
-      } else {
-        console.log('[LOAD] stage', props.step.key, 'not found in DB. All stages:', res.data.map((s: { stage: string }) => s.stage));
       }
-    } else {
-      console.log('[LOAD] getByProjectId failed:', res.message);
     }
-  } catch (e) {
-    console.error('[LOAD ERROR]', e);
+  } catch {
+    // ignore
   }
 });
 
@@ -144,23 +137,19 @@ async function handleSave(): Promise<void> {
   saving.value = true;
   saveError.value = null;
   try {
-    const dataToSave = JSON.stringify(formData.value);
-    console.log('[SAVE] stage:', props.step.key, 'projectId:', props.projectId, 'dataLen:', dataToSave.length);
     const res = await window.electronAPI.stages.updateData(
       props.projectId,
       props.step.key,
-      dataToSave,
+      JSON.stringify(formData.value),
       'in_progress'
     );
     if (res.success) {
       alert('保存成功');
     } else {
       saveError.value = res.message || '保存失败';
-      console.error('[SAVE FAILED]', res.message);
     }
   } catch (e: unknown) {
     saveError.value = `保存失败：${(e as Error).message}`;
-    console.error('[SAVE ERROR]', e);
   } finally {
     saving.value = false;
   }

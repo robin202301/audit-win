@@ -80,11 +80,7 @@ export async function setupIpcHandlers(): Promise<void> {
 
   ipcMain.handle('stages:update-data', async (_e, projectId: number, stage: string, dataJson: string, status?: string) => {
     try {
-      console.log('[IPC SAVE] projectId:', projectId, 'stage:', stage, 'dataLen:', dataJson?.length);
       await stageRepo.updateData(projectId, stage, dataJson, status);
-      // 验证写入
-      const verify = await stageRepo.getByProjectAndStage(projectId, stage as any);
-      console.log('[IPC SAVE VERIFY] stage:', stage, 'dataJson:', verify?.dataJson?.substring(0, 80));
       return { success: true };
     } catch (error: unknown) {
       return { success: false, message: `保存阶段数据失败：${(error as Error).message}` };
