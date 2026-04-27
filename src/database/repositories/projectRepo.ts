@@ -5,11 +5,20 @@ export class ProjectRepo {
   constructor(private db: Database) {}
 
   async getAll(): Promise<Project[]> {
-    return this.db.all<Project[]>('SELECT * FROM projects ORDER BY created_at DESC');
+    return this.db.all<Project[]>(
+      `SELECT id, name, audited_target AS auditedTarget, audit_type AS auditType, status,
+              created_at AS createdAt, updated_at AS updatedAt
+       FROM projects ORDER BY created_at DESC`
+    );
   }
 
   async getById(id: number): Promise<Project | undefined> {
-    return this.db.get<Project>('SELECT * FROM projects WHERE id = ?', id);
+    return this.db.get<Project>(
+      `SELECT id, name, audited_target AS auditedTarget, audit_type AS auditType, status,
+              created_at AS createdAt, updated_at AS updatedAt
+       FROM projects WHERE id = ?`,
+      id
+    );
   }
 
   async create(data: { name: string; auditedTarget?: string; auditType?: string }): Promise<number> {

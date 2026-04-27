@@ -11,7 +11,8 @@
         <button v-if="step.importFrom && step.importFrom.length > 0" class="btn-secondary" @click="handleImport">
           导入前序数据
         </button>
-        <button class="btn-primary" @click="handleSave">保存</button>
+        <button v-if="hasSavedData" class="btn-secondary" @click="handleEdit">修改</button>
+        <button v-if="!hasSavedData || isEditing" class="btn-primary" @click="handleSave">保存</button>
         <button class="btn-primary" @click="handleExport">导出文档</button>
       </div>
     </div>
@@ -33,6 +34,7 @@
           class="input-base"
           :rows="field.rows || 3"
           :placeholder="field.placeholder || ''"
+          :disabled="hasSavedData && !isEditing"
         />
         <input
           v-else-if="field.type === 'date'"
@@ -40,12 +42,14 @@
           type="date"
           class="input-base"
           :placeholder="field.placeholder || ''"
+          :disabled="hasSavedData && !isEditing"
         />
         <input
           v-else
           v-model="formData[field.key]"
           class="input-base"
           :placeholder="field.placeholder || '请输入' + field.label"
+          :disabled="hasSavedData && !isEditing"
         />
       </div>
     </div>
@@ -72,6 +76,8 @@ if (!config) throw new Error(`未找到步骤 ${props.step.key} 的表单配置`
 const formData = ref<Record<string, string>>({});
 const saving = ref(false);
 const saveError = ref<string | null>(null);
+const hasSavedData = ref(false);
+const isEditing = ref(false);
 
 // 初始化表单字段（优先使用配置中的默认值）
 for (const field of config.fields) {
@@ -105,6 +111,7 @@ onMounted(async () => {
             formData.value[key] = parsed[key];
           }
         }
+        hasSavedData.value = true;
       }
     }
   } catch {
@@ -144,6 +151,8 @@ async function handleSave(): Promise<void> {
       'in_progress'
     );
     if (res.success) {
+      hasSavedData.value = true;
+      isEditing.value = false;
       alert('保存成功');
     } else {
       saveError.value = res.message || '保存失败';
@@ -155,6 +164,10 @@ async function handleSave(): Promise<void> {
   }
 }
 
+function handleEdit(): void {
+  isEditing.value = true;
+}
+
 async function handleExport(): Promise<void> {
   if (!config.template) {
     alert('该步骤暂无导出模板');
@@ -164,11 +177,9 @@ async function handleExport(): Promise<void> {
     // 校验模板占位符
     const exportData = { ...formData.value };
     if (props.projectInfo) {
-      // 通知书步骤不使用项目名称作为 projectName 占位符
-      if (props.step.key !== 'notice' && !exportData.projectName) exportData.projectName = props.projectInfo.name;
+      if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
       if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
       if (!exportData.auditProjectName) exportData.auditProjectName = props.projectInfo.name;
-      if (!exportData.auditedLeaderName) exportData.auditedLeaderName = props.projectInfo.auditedTarget;
     }
     if (!exportData.content) exportData.content = '';
     if (!exportData.text) exportData.text = '';
