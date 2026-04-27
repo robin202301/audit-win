@@ -177,9 +177,7 @@ async function handleExport(): Promise<void> {
     // 校验模板占位符
     const exportData = { ...formData.value };
     if (props.projectInfo) {
-      if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
       if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
-      if (!exportData.auditProjectName) exportData.auditProjectName = props.projectInfo.name;
     }
     if (!exportData.content) exportData.content = '';
     if (!exportData.text) exportData.text = '';

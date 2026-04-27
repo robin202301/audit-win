@@ -34,11 +34,10 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     title: '审计通知书',
     template: 'tpl_audit_notice',
     exportFile: '审计通知书.docx',
-    autoFillFromProject: { auditedLeaderUnit: 'auditedTarget', projectName: 'name' },
+    autoFillFromProject: { auditedLeaderUnit: 'auditedTarget' },
     fields: [
       { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共某市委审计委员会办公室' },
       { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：某市审计局' },
-      { key: 'projectName', label: '审计项目名称', fullSpan: true, placeholder: '例：关于开展张三同志经济责任审计' },
       { key: 'documentNumber', label: '文号', placeholder: '例：审（委）办经责通〔2024〕1号' },
       { key: 'auditedLeaderName', label: '被审计领导干部姓名' },
       { key: 'auditedLeaderPosition', label: '被审计领导干部职务' },
