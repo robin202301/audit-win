@@ -37,7 +37,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     autoFillFromProject: { auditedLeaderUnit: 'auditedTarget' },
     fields: [
       { key: 'auditProjectName', label: '审计项目名称', fullSpan: true, placeholder: '例：关于开展XX同志经济责任审计的通知' },
-      { key: 'auditOrg', label: '审计机关全称', placeholder: '例：XX市审计局' },
+      { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：XX市审计局' },
       { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共XX市委审计委员会办公室' },
       { key: 'documentNumber', label: '文号', placeholder: '例：审（委）办经责通〔2024〕1号' },
       { key: 'auditedLeaderName', label: '被审计领导干部姓名' },
@@ -50,6 +50,8 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'ccUnit', label: '抄送' },
       { key: 'issuingOrg', label: '印发机关' },
       { key: 'issueDate', label: '印发日期', type: 'date' },
+      { key: 'text', label: '补充说明（正文）', type: 'textarea', rows: 3, fullSpan: true, placeholder: '正文中的补充说明内容' },
+      { key: 'content', label: '附件内容', type: 'textarea', rows: 4, fullSpan: true, placeholder: '通知书附件内容，留空则不显示' },
     ],
   },
   eight_prohibitions: {
