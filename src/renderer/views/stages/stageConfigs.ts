@@ -191,7 +191,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     fields: [
       { key: 'serialNumber', label: '编号' },
       { key: 'projectName', label: '项目名称', fullSpan: true },
-      { key: 'auditedUnit', label: '被审计（调查）单位或个人' },
+      { key: 'auditedUnit', label: '被审计（调查）单位' },
       { key: 'matterSummary', label: '审计（调查）事项摘要', type: 'textarea', rows: 3, fullSpan: true },
       { key: 'evidenceContent', label: '证据内容', type: 'textarea', rows: 5, fullSpan: true },
       { key: 'legalBasis', label: '法律法规依据', type: 'textarea', rows: 2, fullSpan: true },

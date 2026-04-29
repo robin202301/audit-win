@@ -49,8 +49,8 @@
             <input v-model="formData.projectName" class="input-base" placeholder="请输入项目名称" />
           </div>
           <div>
-            <label class="label-base">被审计单位或个人</label>
-            <input v-model="formData.auditedUnit" class="input-base" placeholder="请输入被审计单位或个人" />
+            <label class="label-base">被审计单位</label>
+            <input v-model="formData.auditedUnit" class="input-base" placeholder="请输入被审计单位" />
           </div>
           <div>
             <label class="label-base">编制日期</label>

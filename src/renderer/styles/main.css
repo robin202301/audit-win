@@ -25,6 +25,38 @@
       );
     color: #1f2937;
   }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      /* 华表柱水印 */
+      radial-gradient(ellipse 200px 600px at 15% 10%, rgba(180, 40, 20, 0.018) 0%, transparent 70%),
+      radial-gradient(ellipse 200px 600px at 85% 10%, rgba(180, 40, 20, 0.018) 0%, transparent 70%),
+      /* 重复的华表柱列 */
+      repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 160px,
+        rgba(180, 40, 20, 0.012) 160px,
+        rgba(180, 40, 20, 0.012) 162px,
+        rgba(180, 40, 20, 0.006) 162px,
+        rgba(180, 40, 20, 0.006) 164px
+      ),
+      /* 祥云装饰点 */
+      radial-gradient(circle 2px at 15% 30%, rgba(180, 40, 20, 0.015) 0%, transparent 100%),
+      radial-gradient(circle 2px at 85% 50%, rgba(180, 40, 20, 0.015) 0%, transparent 100%),
+      radial-gradient(circle 2px at 50% 70%, rgba(180, 40, 20, 0.01) 0%, transparent 100%);
+  }
+
+  /* 确保内容在背景之上 */
+  #app {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 @layer components {

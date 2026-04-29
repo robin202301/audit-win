@@ -2,17 +2,25 @@
   <div class="max-w-7xl mx-auto px-4 py-8">
     <!-- 页面标题栏 -->
     <div class="gov-page-header mb-6">
-      <div class="flex items-center justify-between">
+      <div class="gov-header-row">
         <div>
           <h2 class="gov-page-title">审计项目列表</h2>
           <p class="gov-page-subtitle">管理所有审计项目，点击进入项目详情</p>
         </div>
-        <button class="gov-btn-create" @click="showCreateDialog = true">
-          <svg class="w-4 h-4 mr-1" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          新建项目
-        </button>
+        <div class="gov-header-actions">
+          <div class="gov-search-wrapper">
+            <svg class="gov-search-icon" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
+            </svg>
+            <input v-model="searchKeyword" class="gov-search-input" placeholder="根据项目名称模糊搜索" />
+          </div>
+          <button class="gov-btn-create" @click="showCreateDialog = true">
+            <svg class="w-4 h-4 mr-1" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            新建项目
+          </button>
+        </div>
       </div>
     </div>
 
@@ -21,17 +29,17 @@
       {{ store.error }}
     </div>
 
-    <div v-else-if="store.projects.length === 0" class="gov-empty-state">
+    <div v-else-if="filteredProjects.length === 0" class="gov-empty-state">
       <svg class="gov-empty-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
         <rect x="8" y="12" width="48" height="40" rx="4"/>
         <path d="M20 24h24M20 34h16M20 44h10" stroke-linecap="round"/>
       </svg>
-      <p class="gov-empty-text">暂无项目，点击"新建项目"开始创建</p>
+      <p class="gov-empty-text">{{ searchKeyword ? '未找到匹配的项目' : '暂无项目，点击"新建项目"开始创建' }}</p>
     </div>
 
     <div v-else class="gov-project-grid">
       <div
-        v-for="project in store.projects"
+        v-for="project in filteredProjects"
         :key="project.id"
         class="gov-project-card"
         @click="openProject(project.id)"
@@ -81,8 +89,8 @@
             <input v-model="newProject.name" class="gov-form-input" placeholder="请输入项目名称" />
           </div>
           <div class="gov-form-group">
-            <label class="gov-form-label">被审计单位/个人</label>
-            <input v-model="newProject.auditedTarget" class="gov-form-input" placeholder="请输入被审计单位或个人名称" />
+            <label class="gov-form-label">被审计单位</label>
+            <input v-model="newProject.auditedTarget" class="gov-form-input" placeholder="请输入被审计单位名称" />
           </div>
           <div class="gov-form-group">
             <label class="gov-form-label">审计类型</label>
@@ -103,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@stores/project';
 import type { Project } from '@shared/types';
@@ -112,10 +120,17 @@ const router = useRouter();
 const store = useProjectStore();
 
 const showCreateDialog = ref(false);
+const searchKeyword = ref('');
 const newProject = reactive({
   name: '',
   auditedTarget: '',
   auditType: '经济责任审计',
+});
+
+const filteredProjects = computed(() => {
+  const kw = searchKeyword.value.trim().toLowerCase();
+  if (!kw) return store.projects;
+  return store.projects.filter((p: Project) => p.name.toLowerCase().includes(kw));
 });
 
 onMounted(() => {
@@ -188,6 +203,54 @@ function formatDate(dateStr: string): string {
   font-size: 13px;
   color: #9ca3af;
   margin: 0;
+}
+
+.gov-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gov-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gov-search-wrapper {
+  display: flex;
+  align-items: center;
+  background: #faf8f5;
+  border: 1px solid #e8d5b7;
+  border-radius: 6px;
+  padding: 0 12px;
+  transition: border-color 0.2s;
+}
+
+.gov-search-wrapper:focus-within {
+  border-color: #8B0000;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+
+.gov-search-icon {
+  width: 16px;
+  height: 16px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.gov-search-input {
+  border: none;
+  background: transparent;
+  padding: 8px 8px;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+  width: 220px;
+}
+
+.gov-search-input::placeholder {
+  color: #9ca3af;
 }
 
 .gov-btn-create {

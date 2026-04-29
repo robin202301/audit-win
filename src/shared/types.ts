@@ -72,7 +72,7 @@ export interface IPCResponse<T = unknown> {
 export interface Project {
   id: number;
   name: string;                // 项目名称
-  auditedTarget: string;       // 被审计单位/个人
+  auditedTarget: string;       // 被审计单位
   auditType: AuditType;        // 审计类型
   status: 'active' | 'archived' | 'draft';
   createdAt: string;
@@ -95,7 +95,7 @@ export interface EvidenceItem {
   projectId: number;
   serialNumber: string;        // 编号
   projectName: string;         // 项目名称
-  auditedUnit: string;         // 被审计（调查）单位或个人
+  auditedUnit: string;         // 被审计（调查）单位
   matterSummary: string;       // 审计（调查）事项摘要
   evidenceContent: string;     // 证据内容
   legalBasis: string;          // 法律法规依据
