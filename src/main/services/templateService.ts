@@ -12,16 +12,13 @@ function getTemplatePath(templateName: string): string {
     basePath = path.join(process.resourcesPath, 'resources', 'templates');
   }
 
-  // 尝试匹配模板文件名
+  // 尝试匹配模板文件名（支持中文命名和多种扩展名）
   const possibleNames = [
-    templateName,
     `${templateName}.docx`,
-    `tpl_${templateName}.docx`,
-    `tpl_${templateName}.doc`,
+    `${templateName}.doc`,
     `${templateName}.xlsx`,
-    `tpl_${templateName}.xlsx`,
     `${templateName}.xls`,
-    `tpl_${templateName}.xls`,
+    templateName,
   ];
 
   for (const name of possibleNames) {
@@ -61,13 +58,11 @@ export function getTemplatePathByName(templateName: string): string {
     basePath = path.join(process.resourcesPath, 'resources', 'templates');
   }
 
-  // 尝试匹配模板文件名
+  // 尝试匹配模板文件名（支持中文命名和多种扩展名）
   const possibleNames = [
-    templateName,
     `${templateName}.xlsx`,
-    `tpl_${templateName}.xlsx`,
     `${templateName}.xls`,
-    `tpl_${templateName}.xls`,
+    templateName,
   ];
 
   for (const name of possibleNames) {

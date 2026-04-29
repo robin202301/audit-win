@@ -40,41 +40,14 @@
 
 精细监听: watch 必须指定具体属性（例如 watch(() => project.id, ...)），严禁监听整个复杂对象。
 
-4. 业务逻辑：6 阶段审计工作流
-   审计通知 (Notice):
-
-支持上传 Word。解析器需提取：标题、内容、日期、印发机关。
-
-全中文表单: 对应输入框必须标注为“通知书标题”、“抄送”等。
-
-审计调查 (Survey):
-
-基础信息采集。表格输入框需支持回显和上传文件回填。
-
-审计方案 (Plan):
-
-定义审计组成员及分工，生成方案文档。
-
-审计取证 (Evidence):
-
-1:N 取证单管理。支持多附件关联，支持从表格生成取证单。
-
-审计底稿 (Working Paper):
-
-核心分析。支持从取证单自动汇总数据，版式必须严丝合缝。
-
-审计报告 (Final Report):
-
-汇总生成。导出时必须保持模板的所有 Word 样式（字体、字号、边距）。
-
-5. Word/Excel 处理标准
+4. Word/Excel 处理标准
    上传解析: 用户上传文件后，系统通过 mammoth.js 或自定义逻辑扫描段落，将其映射至 Vue 组件。
 
 版式无损导出: 使用 docxtemplater + pizzip 进行模板填充。
 
 强制要求: 导出过程中，严禁修改用户模板中未定义的 XML 样式，确保“上传什么版式，导出什么版式”。
 
-6. 项目结构与环境
+5. 项目结构与环境
    Plaintext
    auditsystem-win/
    ├── src/
@@ -86,7 +59,7 @@
    │   └── database/      # SQLite DAO 层
    ├── templates/         # Word/Excel 审计模板
    └── release/           # 打包产物目录 (electron-builder 输出)
-7. 自主模式协议 (Autonomous Mode)
+6. 自主模式协议 (Autonomous Mode)
    自主修复: 遇到 electron-squirrel-startup 报错时，自动更正拼写并移动至 dependencies。
 - **权限授予**: 在此项目内，你已被授予执行 Shell 脚本、读写文件和运行测试的完整权限。
 - **自主循环**: 遇到错误时，请直接查看报错日志并修正，严禁在尝试修复前停下来询问。

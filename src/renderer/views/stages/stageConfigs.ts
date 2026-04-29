@@ -10,7 +10,7 @@ export interface FormField {
 
 export interface StageFormConfig {
   title: string;           // 表单标题
-  template: string;        // 导出模板名（对应 resources/templates/ 中的文件名，不含扩展名）
+  template?: string;        // 导出模板名（对应 resources/templates/ 中的文件名，不含扩展名）
   exportFile: string;      // 导出文件名
   fields: FormField[];
   autoFillFromProject?: Record<string, string>;  // 从项目信息自动填充：formKey -> projectKey
@@ -18,26 +18,14 @@ export interface StageFormConfig {
 }
 
 export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
-  work_plan: {
-    title: '审计工作方案',
-    template: 'tpl_audit_plan',
-    exportFile: '审计工作方案.docx',
-    autoFillFromProject: { projectName: 'name' },
-    fields: [
-      { key: 'projectName', label: '项目名称', fullSpan: true, placeholder: '请输入项目名称' },
-      { key: 'auditType', label: '审计类型', fullSpan: true, placeholder: '经济责任审计/预算执行和其他财政收支审计' },
-      { key: 'workPlanContent', label: '工作方案内容', type: 'textarea', rows: 8, fullSpan: true, placeholder: '审计目标、范围、重点、时间安排等' },
-      { key: 'compileDate', label: '编制日期', type: 'date' },
-    ],
-  },
   notice: {
     title: '审计通知书',
-    template: 'tpl_audit_notice',
+    template: '1经济责任审计通知书',
     exportFile: '审计通知书.docx',
     autoFillFromProject: { auditedLeaderUnit: 'auditedTarget' },
     fields: [
-      { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共某市委审计委员会办公室' },
-      { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：某市审计局' },
+      { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室' },
+      { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：科右前旗审计局' },
       { key: 'documentNumber', label: '文号', placeholder: '例：审（委）办经责通〔2024〕1号' },
       { key: 'auditedLeaderName', label: '被审计领导干部姓名' },
       { key: 'auditedLeaderPosition', label: '被审计领导干部职务' },
@@ -45,17 +33,17 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'teamLeader', label: '审计组组长' },
       { key: 'teamDeputyLeader', label: '副组长' },
       { key: 'teamMembers', label: '审计组成员（逗号分隔）', fullSpan: true, placeholder: '请输入成员姓名，用逗号分隔' },
-      { key: 'text', label: '配合联系人/财务负责人', fullSpan: true, placeholder: '例：单位财务负责人或联络人姓名，用于正文中"{auditedLeaderName}同志及{text}应当对所提供资料的及时性、真实性和完整性负责"' },
+      { key: 'text', label: '配合联系人/财务负责人', fullSpan: true, placeholder: '例：单位财务负责人或联络人姓名' },
       { key: 'ccUnit', label: '抄送单位' },
-      { key: 'issuingOrg', label: '印发机关' },
+      { key: 'issuingOrg', label: '印发机关', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室 科右前旗审计局' },
       { key: 'issueDate', label: '印发日期', type: 'date' },
       { key: 'content', label: '附件内容', type: 'textarea', rows: 4, fullSpan: true, placeholder: '通知书附件内容，留空则不显示' },
     ],
   },
   eight_prohibitions: {
-    title: '审计"八不准"工作纪律',
-    template: 'tpl_audit_eight_prohibitions_requirements',
-    exportFile: '审计八不准工作纪律.docx',
+    title: '通知附件八不准',
+    template: '4通知附件八不准',
+    exportFile: '通知附件八不准.docx',
     autoFillFromProject: {},
     defaultValues: {
       content: `审计"八不准"工作纪律
@@ -78,7 +66,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   delivery_receipt: {
     title: '审计文书送达回证',
-    template: 'tpl_audit_document_delivery_receipt',
+    template: '5审计文书送达回证',
     exportFile: '审计文书送达回证.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -90,13 +78,11 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'deliveryDate', label: '送达日期', type: 'date' },
       { key: 'recipientSignature', label: '收件人签名' },
       { key: 'deliveryPerson', label: '送达人' },
-      // 模板中的通用占位符
       { key: 'content', label: '填写内容', type: 'textarea', rows: 6, fullSpan: true },
     ],
   },
   audit_announcement: {
     title: '经济责任审计公示',
-    template: 'tpl_er_audit_announcement',
     exportFile: '经济责任审计公示.docx',
     autoFillFromProject: { projectName: 'name', auditedLeaderName: 'auditedTarget' },
     fields: [
@@ -108,14 +94,13 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'announcementEndDate', label: '公示结束日期', type: 'date' },
       { key: 'contactPhone', label: '联系电话' },
       { key: 'contactAddress', label: '联系地址', fullSpan: true },
-      // 模板中的通用占位符
       { key: 'content', label: '公示内容', type: 'textarea', rows: 6, fullSpan: true },
       { key: 'text', label: '补充文本' },
     ],
   },
   commitment_letter: {
     title: '被审计单位承诺书',
-    template: 'tpl_auditee_commitment',
+    template: '6被审计单位承诺书',
     exportFile: '被审计单位承诺书.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget' },
     fields: [
@@ -124,14 +109,13 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'legalRepSignature', label: '法定代表人签名' },
       { key: 'unitSeal', label: '单位盖章' },
       { key: 'commitDate', label: '承诺日期', type: 'date' },
-      // 模板中的通用占位符
       { key: 'content', label: '正文内容', type: 'textarea', rows: 6, fullSpan: true },
       { key: 'text', label: '补充文本' },
     ],
   },
   survey: {
     title: '调查了解记录',
-    template: 'tpl_investigation_record_auditee_basic_info',
+    template: '7调查了解记录1基本情况表',
     exportFile: '调查了解记录.xlsx',
     autoFillFromProject: { unitName: 'auditedTarget' },
     fields: [
@@ -157,7 +141,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   plan: {
     title: '审计实施方案',
-    template: 'tpl_audit_plan',
+    template: '10审计实施方案',
     exportFile: '审计实施方案.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -174,7 +158,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   task_list: {
     title: '任务清单',
-    template: 'tpl_task_list',
     exportFile: '任务清单.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -185,7 +168,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   interview_record: {
     title: '谈话记录',
-    template: 'tpl_investigation_interview_record',
     exportFile: '谈话记录.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -197,14 +179,13 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'interviewLocation', label: '谈话地点' },
       { key: 'interviewContent', label: '谈话内容', type: 'textarea', rows: 10, fullSpan: true, placeholder: '谈话记录详细内容' },
       { key: 'intervieweeSignature', label: '被谈话人签名' },
-      // 模板中的通用占位符
       { key: 'content', label: '正文内容', type: 'textarea', rows: 6, fullSpan: true },
       { key: 'name', label: '人员姓名' },
     ],
   },
   evidence: {
     title: '审计取证单',
-    template: 'tpl_audit_evidence',
+    template: '11审计取证单',
     exportFile: '审计取证单.docx',
     autoFillFromProject: { projectName: 'name', auditedUnit: 'auditedTarget' },
     fields: [
@@ -222,9 +203,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     ],
   },
   working_paper: {
-    title: '审计底稿',
-    template: 'tpl_working_paper',
-    exportFile: '审计底稿.docx',
+    title: '审计工作底稿',
+    template: '12审计工作底稿',
+    exportFile: '审计工作底稿.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'indexNumber', label: '索引号' },
@@ -239,14 +220,13 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'reviewerName', label: '审核人员' },
       { key: 'reviewDate', label: '审核日期', type: 'date' },
       { key: 'attachmentCount', label: '附件页数' },
-      // 模板中的通用占位符
       { key: 'val', label: '引用底稿/证据编号' },
     ],
   },
   task_list_completion: {
-    title: '审计任务清单完成情况',
-    template: 'tpl_task_list_completion',
-    exportFile: '审计任务清单完成情况.xls',
+    title: '任务清单完成情况',
+    template: '13任务清单完成情况',
+    exportFile: '任务清单完成情况.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
@@ -256,7 +236,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   report: {
     title: '审计组审计报告',
-    template: 'tpl_final_report',
     exportFile: '审计组审计报告.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget', auditProject: 'name' },
     fields: [
@@ -274,7 +253,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'problemsFound', label: '审计发现的主要问题', type: 'textarea', rows: 8, fullSpan: true },
       { key: 'responsibility', label: '责任认定', type: 'textarea', rows: 3, fullSpan: true },
       { key: 'auditSuggestions', label: '审计建议', type: 'textarea', rows: 4, fullSpan: true },
-      // 模板中的通用占位符
       { key: 'text', label: '审计期间', type: 'textarea', rows: 3, fullSpan: true, placeholder: '审计期间、范围、重点等文本内容' },
       { key: 'content', label: '报告正文内容', type: 'textarea', rows: 10, fullSpan: true, placeholder: '报告正文详细内容' },
       { key: 'shortText', label: '补充说明', type: 'textarea', rows: 3, fullSpan: true },
@@ -284,7 +262,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   report_consultation: {
     title: '审计报告征求意见书',
-    template: 'tpl_er_audit_report_consultation',
+    template: '14审计报告征求意见书',
     exportFile: '审计报告征求意见书.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget', projectName: 'name' },
     fields: [
@@ -295,16 +273,15 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'contactPerson', label: '联系人' },
       { key: 'contactPhone', label: '联系电话' },
       { key: 'issueDate', label: '发出日期', type: 'date' },
-      // 模板中的通用占位符
       { key: 'content', label: '正文内容', type: 'textarea', rows: 6, fullSpan: true },
       { key: 'text', label: '描述文本', type: 'textarea', rows: 3, fullSpan: true },
       { key: 'val', label: '编号/日期值' },
     ],
   },
   audit_opinion: {
-    title: '审核意见',
-    template: 'tpl_audit_opinion',
-    exportFile: '审核意见.docx',
+    title: '审核意见书',
+    template: '15审核意见书',
+    exportFile: '审核意见书.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
@@ -314,9 +291,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     ],
   },
   review_opinion: {
-    title: '复核意见',
-    template: 'tpl_review_opinion',
-    exportFile: '复核意见.docx',
+    title: '复核意见书',
+    template: '16复核意见书',
+    exportFile: '复核意见书.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
@@ -326,9 +303,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     ],
   },
   adjudication_opinion: {
-    title: '审理意见',
-    template: 'tpl_adjudication_opinion',
-    exportFile: '审理意见.docx',
+    title: '审理意见书',
+    template: '17审理意见书',
+    exportFile: '审理意见书.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
@@ -338,9 +315,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     ],
   },
   adjudication_meeting: {
-    title: '审理会纪要',
-    template: 'tpl_adjudication_meeting_minutes',
-    exportFile: '审理会纪要.docx',
+    title: '审理会议纪要',
+    template: '19审理会议纪要',
+    exportFile: '审理会议纪要.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
@@ -353,9 +330,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     ],
   },
   draft_cover: {
-    title: '报告代拟稿封面',
-    template: 'tpl_draft_cover',
-    exportFile: '报告代拟稿封面.docx',
+    title: '代拟稿封皮',
+    template: '18代拟稿封皮',
+    exportFile: '代拟稿封皮.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
@@ -369,7 +346,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   external_report: {
     title: '对外报告',
-    template: 'tpl_final_report',
+    template: '20预算执行对外报告',
     exportFile: '对外报告.docx',
     autoFillFromProject: { projectName: 'name', auditedUnit: 'auditedTarget' },
     fields: [
@@ -380,7 +357,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'reportContent', label: '报告内容', type: 'textarea', rows: 12, fullSpan: true, placeholder: '对外发布的完整报告内容' },
       { key: 'issueOrg', label: '发文机关' },
       { key: 'issuerSignature', label: '签发人签名' },
-      // 模板中的通用占位符
       { key: 'content', label: '正文内容', type: 'textarea', rows: 8, fullSpan: true },
       { key: 'text', label: '描述文本', type: 'textarea', rows: 3, fullSpan: true },
       { key: 'name', label: '人员姓名' },
@@ -389,7 +365,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   audit_decision: {
     title: '审计决定书',
-    template: 'tpl_audit_opinion',
     exportFile: '审计决定书.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget' },
     fields: [
@@ -398,7 +373,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'decisionContent', label: '审计决定内容', type: 'textarea', rows: 10, fullSpan: true, placeholder: '审计处理决定内容' },
       { key: 'decisionDate', label: '决定日期', type: 'date' },
       { key: 'issueOrg', label: '发文机关' },
-      // 模板中的通用占位符
       { key: 'content', label: '正文内容', type: 'textarea', rows: 8, fullSpan: true },
       { key: 'text', label: '描述文本', type: 'textarea', rows: 3, fullSpan: true },
       { key: 'name', label: '人员姓名' },
@@ -407,8 +381,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   result_report: {
     title: '经责审计结果报告',
-    template: 'tpl_er_result_report',
-    exportFile: '经济责任审计结果报告.docx',
+    exportFile: '经责审计结果报告.docx',
     autoFillFromProject: { projectName: 'name', auditedLeaderName: 'auditedTarget' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
@@ -416,7 +389,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'auditedLeaderPosition', label: '被审计领导职务' },
       { key: 'reportContent', label: '结果报告内容', type: 'textarea', rows: 12, fullSpan: true, placeholder: '经济责任审计结果报告完整内容' },
       { key: 'reportDate', label: '报告日期', type: 'date' },
-      // 模板中的通用占位符
       { key: 'content', label: '正文内容', type: 'textarea', rows: 8, fullSpan: true, placeholder: '报告正文详细内容' },
       { key: 'text', label: '期间/描述文本', type: 'textarea', rows: 3, fullSpan: true },
       { key: 'name', label: '人员姓名' },
@@ -424,9 +396,8 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     ],
   },
   issues_not_reflected: {
-    title: '未在审计报告中反映问题清单',
-    template: 'tpl_issues_not_reflected_in_audit_report',
-    exportFile: '未在审计报告中反映问题清单.docx',
+    title: '未在报告中反映问题清单',
+    exportFile: '未在报告中反映问题清单.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
@@ -436,7 +407,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   issue_ledger: {
     title: '审计问题台账',
-    template: 'tpl_issues_not_reflected_in_audit_report',
     exportFile: '审计问题台账.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -447,7 +417,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   archive_catalog: {
     title: '审计档案目录',
-    template: 'tpl_issues_not_reflected_in_audit_report',
     exportFile: '审计档案目录.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [

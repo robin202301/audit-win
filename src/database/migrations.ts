@@ -144,7 +144,6 @@ export async function runMigrations(db: Database): Promise<void> {
     CREATE TRIGGER IF NOT EXISTS init_stage_progress
     AFTER INSERT ON projects
     BEGIN
-      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'work_plan', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'notice', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'eight_prohibitions', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'delivery_receipt', 'not_started');
