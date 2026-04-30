@@ -12,7 +12,8 @@
             <svg class="gov-search-icon" viewBox="0 0 16 16" fill="currentColor">
               <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
             </svg>
-            <input v-model="searchKeyword" class="gov-search-input" placeholder="根据项目名称模糊搜索" />
+            <input v-model="searchKeyword" class="gov-search-input" placeholder="根据项目名称模糊搜索" @keyup.enter="handleSearch" />
+            <button class="gov-btn-search" @click="handleSearch">查询</button>
           </div>
           <button class="gov-btn-create" @click="showCreateDialog = true">
             <svg class="w-4 h-4 mr-1" viewBox="0 0 16 16" fill="currentColor">
@@ -29,7 +30,7 @@
       {{ store.error }}
     </div>
 
-    <div v-else-if="filteredProjects.length === 0" class="gov-empty-state">
+    <div v-else-if="visibleProjects.length === 0" class="gov-empty-state">
       <svg class="gov-empty-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
         <rect x="8" y="12" width="48" height="40" rx="4"/>
         <path d="M20 24h24M20 34h16M20 44h10" stroke-linecap="round"/>
@@ -39,7 +40,7 @@
 
     <div v-else class="gov-project-grid">
       <div
-        v-for="project in filteredProjects"
+        v-for="project in visibleProjects"
         :key="project.id"
         class="gov-project-card"
         @click="openProject(project.id)"
@@ -70,6 +71,12 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <div v-if="hasMore && !searchKeyword.trim()" class="gov-load-more">
+      <button class="gov-btn-load-more" @click="loadMore">
+        加载更多（剩余{{ filteredProjects.length - displayCount }}项）
+      </button>
     </div>
 
     <!-- 新建项目对话框 -->
@@ -111,16 +118,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue';
+import { ref, computed, onMounted, reactive, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@stores/project';
 import type { Project } from '@shared/types';
+
+const PAGE_SIZE = 9;
 
 const router = useRouter();
 const store = useProjectStore();
 
 const showCreateDialog = ref(false);
 const searchKeyword = ref('');
+const displayCount = shallowRef(PAGE_SIZE);
 const newProject = reactive({
   name: '',
   auditedTarget: '',
@@ -132,6 +142,25 @@ const filteredProjects = computed(() => {
   if (!kw) return store.projects;
   return store.projects.filter((p: Project) => p.name.toLowerCase().includes(kw));
 });
+
+const visibleProjects = computed(() => {
+  const hasSearch = searchKeyword.value.trim().length > 0;
+  const list = filteredProjects.value;
+  if (hasSearch) return list;
+  return list.slice(0, displayCount.value);
+});
+
+const hasMore = computed(() => {
+  return filteredProjects.value.length > displayCount.value;
+});
+
+function loadMore(): void {
+  displayCount.value += PAGE_SIZE;
+}
+
+function handleSearch(): void {
+  displayCount.value = PAGE_SIZE;
+}
 
 onMounted(() => {
   store.loadProjects();
@@ -251,6 +280,42 @@ function formatDate(dateStr: string): string {
 
 .gov-search-input::placeholder {
   color: #9ca3af;
+}
+
+.gov-btn-search {
+  background: none;
+  border: none;
+  color: #8B0000;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.gov-btn-search:hover {
+  background: rgba(139, 0, 0, 0.08);
+}
+
+.gov-load-more {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.gov-btn-load-more {
+  padding: 8px 24px;
+  background: #fff;
+  border: 1px solid #e8d5b7;
+  border-radius: 6px;
+  color: #8B0000;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gov-btn-load-more:hover {
+  background: #fff8f0;
+  border-color: #c2410c;
 }
 
 .gov-btn-create {

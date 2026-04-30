@@ -5,7 +5,7 @@
         <div class="flex items-center gap-3">
           <img src="../../public/logo.png" alt="国徽" class="gov-logo" />
           <div class="gov-title-group">
-            <h1 class="gov-title">基层审计机关审计辅助系统</h1>
+            <h1 class="gov-title">基层审计机关审计辅助系统 <span class="gov-version">v0.1</span></h1>
             <p class="gov-subtitle">科右前旗审计局</p>
           </div>
         </div>
@@ -26,7 +26,7 @@
       <router-view :key="$route.fullPath" />
     </main>
     <footer class="gov-footer">
-      <p>基层审计机关审计辅助系统 &copy; {{ currentYear }} 科右前旗审计局</p>
+      <p>基层审计机关审计辅助系统 v0.1 &copy; {{ currentYear }} 科右前旗审计局</p>
     </footer>
   </div>
 </template>
@@ -147,6 +147,14 @@ const currentYear = new Date().getFullYear();
   color: rgba(255, 215, 0, 0.8);
   letter-spacing: 2px;
   margin: 0;
+}
+
+.gov-version {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.6;
+  letter-spacing: 0;
+  margin-left: 8px;
 }
 
 .gov-back-btn {
