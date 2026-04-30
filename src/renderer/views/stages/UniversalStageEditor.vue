@@ -2,7 +2,7 @@
   <div class="card">
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
-        <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">
+        <span class="w-8 h-8 rounded-full bg-red-700 text-yellow-400 flex items-center justify-center text-sm font-bold">
           {{ step.stepNumber }}
         </span>
         <h2 class="text-xl font-bold">{{ step.label }}</h2>
@@ -10,6 +10,7 @@
       <div class="flex gap-2">
         <button class="btn-secondary" @click="handleUploadTemplate">上传模板</button>
         <button class="btn-secondary" @click="handleResetTemplate">重置为模板</button>
+        <button v-if="hasSavedData && !isEditing" class="btn-secondary gov-btn-edit" @click="handleEdit">修改</button>
         <button class="btn-primary" @click="handleSave">保存</button>
         <button class="btn-primary" @click="handleExport">导出文档</button>
       </div>
@@ -33,7 +34,7 @@
       v-model="content"
       class="input-base w-full font-mono text-sm leading-relaxed"
       rows="24"
-      placeholder="模板内容将在此显示，可编辑修改..."
+      placeholder="模板内容将在此显示，可编辑修改..." :readonly="hasSavedData && !isEditing"
     />
 
     <div v-if="saving" class="mt-3 text-blue-600">保存中...</div>
@@ -56,6 +57,8 @@ const content = ref('');
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 const saveSuccess = ref(false);
+const hasSavedData = ref(false);
+const isEditing = ref(false);
 const templateText = ref(''); // 原始模板文本
 
 onMounted(async () => {
@@ -139,6 +142,7 @@ async function loadSavedContent(): Promise<void> {
         const parsed = JSON.parse(stageData.dataJson);
         if (parsed.content) {
           content.value = parsed.content;
+          hasSavedData.value = true;
         }
       }
     }
@@ -160,6 +164,8 @@ async function handleSave(): Promise<void> {
       'in_progress'
     );
     if (res.success) {
+      hasSavedData.value = true;
+      isEditing.value = false;
       saveSuccess.value = true;
       setTimeout(() => { saveSuccess.value = false; }, 2000);
     } else {
@@ -170,6 +176,10 @@ async function handleSave(): Promise<void> {
   } finally {
     saving.value = false;
   }
+}
+
+function handleEdit(): void {
+  isEditing.value = true;
 }
 
 async function handleExport(): Promise<void> {
@@ -277,5 +287,23 @@ function getStepLabel(key: string): string {
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.gov-btn-edit {
+  background: #fff7ed !important;
+  border-color: #fdba74 !important;
+  color: #c2410c !important;
+}
+
+.gov-btn-edit:hover {
+  background: #ffedd5 !important;
+  border-color: #f97316 !important;
+}
+
+.input-base[readonly] {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
 }
 </style>

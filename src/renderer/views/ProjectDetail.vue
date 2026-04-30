@@ -128,7 +128,7 @@ function statusBadgeClass(status: string): string {
 }
 
 function statusLabel(status: string): string {
-  const map: Record<string, string> = { active: '进行中', archived: '已归档', draft: '草稿' };
+  const map: Record<string, string> = { active: '实施中', archived: '已归档', draft: '草稿' };
   return map[status] || status;
 }
 

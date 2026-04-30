@@ -8,7 +8,7 @@ export async function runMigrations(db: Database): Promise<void> {
       name TEXT NOT NULL,
       audited_target TEXT NOT NULL DEFAULT '',
       audit_type TEXT NOT NULL DEFAULT '经济责任审计',
-      status TEXT NOT NULL DEFAULT 'draft',
+      status TEXT NOT NULL DEFAULT 'active',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );

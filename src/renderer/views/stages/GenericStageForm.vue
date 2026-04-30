@@ -1,61 +1,65 @@
 <template>
-  <div class="card">
+  <div class="card gov-stage-card">
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
-        <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">
+        <span class="gov-step-badge">
           {{ props.step.stepNumber }}
         </span>
-        <h2 class="text-xl font-bold">{{ config.title }}</h2>
+        <h2 class="gov-step-title">{{ config.title }}</h2>
       </div>
       <div class="flex gap-2">
-        <button v-if="step.importFrom && step.importFrom.length > 0" class="btn-secondary" @click="handleImport">
+        <button v-if="step.importFrom && step.importFrom.length > 0" class="gov-btn-secondary" @click="handleImport">
           导入前序数据
         </button>
-        <button v-if="hasSavedData" class="btn-secondary" @click="handleEdit">修改</button>
-        <button v-if="!hasSavedData || isEditing" class="btn-primary" @click="handleSave">保存</button>
-        <button class="btn-primary" @click="handleExport">导出文档</button>
+        <button v-if="hasSavedData && !isEditing" class="gov-btn-edit" @click="handleEdit">修改</button>
+        <button v-if="!hasSavedData || isEditing" class="gov-btn-primary" @click="handleSave">
+          <svg v-if="saving" class="w-3 h-3 mr-1 animate-spin" viewBox="0 0 16 16" fill="currentColor">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="20 12"/>
+          </svg>
+          {{ saving ? '保存中...' : '保存' }}
+        </button>
+        <button class="gov-btn-export" @click="handleExport">导出文档</button>
       </div>
     </div>
 
     <!-- 数据引用提示 -->
-    <div v-if="step.importFrom && step.importFrom.length > 0" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+    <div v-if="step.importFrom && step.importFrom.length > 0" class="gov-import-hint">
       <span class="font-medium">数据来源：</span>
       <span v-for="srcKey in step.importFrom" :key="srcKey">
         {{ getStepLabel(srcKey) }}
       </span>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2">
-      <div v-for="field in config.fields" :key="field.key" :class="field.fullSpan ? 'md:col-span-2' : ''">
-        <label class="label-base">{{ field.label }}</label>
+    <div class="gov-form-grid">
+      <div v-for="field in config.fields" :key="field.key" :class="field.fullSpan ? 'gov-span-2' : ''">
+        <label class="gov-field-label">{{ field.label }}</label>
         <textarea
           v-if="field.type === 'textarea'"
           v-model="formData[field.key]"
-          class="input-base"
+          class="gov-input"
           :rows="field.rows || 3"
           :placeholder="field.placeholder || ''"
-          :disabled="hasSavedData && !isEditing"
+          :readonly="hasSavedData && !isEditing"
         />
         <input
           v-else-if="field.type === 'date'"
           v-model="formData[field.key]"
           type="date"
-          class="input-base"
+          class="gov-input"
           :placeholder="field.placeholder || ''"
-          :disabled="hasSavedData && !isEditing"
+          :readonly="hasSavedData && !isEditing"
         />
         <input
           v-else
           v-model="formData[field.key]"
-          class="input-base"
+          class="gov-input"
           :placeholder="field.placeholder || '请输入' + field.label"
-          :disabled="hasSavedData && !isEditing"
+          :readonly="hasSavedData && !isEditing"
         />
       </div>
     </div>
 
-    <div v-if="saving" class="mt-4 text-blue-600">保存中...</div>
-    <div v-if="saveError" class="mt-4 text-red-600">{{ saveError }}</div>
+    <div v-if="saveError" class="gov-error-msg">{{ saveError }}</div>
   </div>
 </template>
 
@@ -270,3 +274,168 @@ function getStepLabel(key: string): string {
   return found ? found.label : key;
 }
 </script>
+
+<style scoped>
+.gov-stage-card {
+  background: linear-gradient(135deg, #fff 0%, #fffaf5 100%);
+  border: 1px solid #e8d5b7;
+  border-left: 4px solid #8B0000;
+  border-radius: 8px;
+}
+
+.gov-step-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8B0000, #B22222);
+  color: #FFD700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
+}
+
+.gov-step-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* 按钮 */
+.gov-btn-secondary {
+  padding: 6px 14px;
+  background: #fff;
+  border: 1px solid #e8d5b7;
+  border-radius: 6px;
+  color: #8B0000;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gov-btn-secondary:hover {
+  background: #fff8f0;
+  border-color: #c2410c;
+}
+
+.gov-btn-edit {
+  padding: 6px 14px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 6px;
+  color: #c2410c;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gov-btn-edit:hover {
+  background: #ffedd5;
+  border-color: #f97316;
+}
+
+.gov-btn-primary {
+  padding: 6px 16px;
+  background: linear-gradient(135deg, #8B0000, #B22222);
+  color: #FFD700;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
+}
+
+.gov-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #a00000, #c42828);
+  transform: translateY(-1px);
+}
+
+.gov-btn-export {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #8B0000, #B22222);
+  color: #FFD700;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
+}
+
+.gov-btn-export:hover {
+  background: linear-gradient(135deg, #a00000, #c42828);
+  transform: translateY(-1px);
+}
+
+/* 数据引用提示 */
+.gov-import-hint {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+/* 表单网格 */
+.gov-form-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(1, 1fr);
+}
+
+@media (min-width: 768px) {
+  .gov-form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.gov-span-2 {
+  grid-column: 1 / -1;
+}
+
+.gov-field-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.gov-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #faf8f5;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.gov-input:focus {
+  outline: none;
+  border-color: #8B0000;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+
+.gov-input:read-only {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
+.gov-error-msg {
+  margin-top: 16px;
+  color: #dc2626;
+  font-size: 13px;
+}
+</style>
