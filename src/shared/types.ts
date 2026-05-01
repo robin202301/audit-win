@@ -14,8 +14,15 @@ export interface WorkflowStep {
 export const AUDIT_TYPES = ['经济责任审计', '预算执行审计', '专项审计调查'] as const;
 export type AuditType = typeof AUDIT_TYPES[number];
 
+// 通知书模板映射（根据审计类型选择对应模板）
+export const NOTICE_TEMPLATES: Record<AuditType, string> = {
+  '经济责任审计': '1经济责任审计通知书',
+  '预算执行审计': '2预算执行通知书',
+  '专项审计调查': '3专项审计调查通知书',
+};
+
 export const WORKFLOW_STEPS: WorkflowStep[] = [
-  { stepNumber: 1, key: 'notice', label: '审计通知书', phase: 1, phaseLabel: '审计准备阶段', template: '1经济责任审计通知书', importFrom: [] },
+  { stepNumber: 1, key: 'notice', label: '审计通知书', phase: 1, phaseLabel: '审计准备阶段', importFrom: [] },
   { stepNumber: 2, key: 'eight_prohibitions', label: '通知附件八不准', phase: 1, phaseLabel: '审计准备阶段', template: '4通知附件八不准', importFrom: ['notice'] },
   { stepNumber: 3, key: 'delivery_receipt', label: '审计文书送达回证', phase: 1, phaseLabel: '审计准备阶段', template: '5审计文书送达回证', importFrom: ['notice'] },
   { stepNumber: 4, key: 'audit_announcement', label: '经济责任审计公示', phase: 1, phaseLabel: '审计准备阶段', importFrom: ['notice'], auditType: '经济责任审计' },

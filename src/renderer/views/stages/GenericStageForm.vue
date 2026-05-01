@@ -32,14 +32,18 @@
 
     <div class="gov-form-grid">
       <div v-for="field in config.fields" :key="field.key" :class="field.fullSpan ? 'gov-span-2' : ''">
-        <label class="gov-field-label">{{ field.label }}</label>
+        <label class="gov-field-label">
+          {{ field.label }}
+          <span v-if="field.readonly" class="gov-field-readonly-tag">（全局设置）</span>
+        </label>
         <textarea
           v-if="field.type === 'textarea'"
           v-model="formData[field.key]"
           class="gov-input"
+          :class="{ 'gov-input-readonly': field.readonly }"
           :rows="field.rows || 3"
           :placeholder="field.placeholder || ''"
-          :readonly="hasSavedData && !isEditing"
+          :readonly="field.readonly || (hasSavedData && !isEditing)"
         />
         <input
           v-else-if="field.type === 'date'"
@@ -48,13 +52,15 @@
           class="gov-input"
           :placeholder="field.placeholder || ''"
           :readonly="hasSavedData && !isEditing"
+          @change="validateDateField(field.key)"
         />
         <input
           v-else
           v-model="formData[field.key]"
           class="gov-input"
+          :class="{ 'gov-input-readonly': field.readonly }"
           :placeholder="field.placeholder || '请输入' + field.label"
-          :readonly="hasSavedData && !isEditing"
+          :readonly="field.readonly || (hasSavedData && !isEditing)"
         />
       </div>
     </div>
@@ -64,9 +70,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 import { STAGE_FORM_CONFIGS } from './stageConfigs';
+import { NOTICE_TEMPLATES } from '@shared/types';
 
 const props = defineProps<{
   projectId: number;
@@ -77,18 +84,48 @@ const props = defineProps<{
 const config = STAGE_FORM_CONFIGS[props.step.key];
 if (!config) throw new Error(`未找到步骤 ${props.step.key} 的表单配置`);
 
+// 动态解析模板（通知书根据审计类型选择模板）
+const activeTemplate = computed(() => {
+  if (props.step.key === 'notice' && props.projectInfo?.auditType) {
+    return NOTICE_TEMPLATES[props.projectInfo.auditType as keyof typeof NOTICE_TEMPLATES] || config.template;
+  }
+  return config.template;
+});
+
 const formData = ref<Record<string, string>>({});
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 const hasSavedData = ref(false);
 const isEditing = ref(false);
+const globalSettings = ref<Record<string, string>>({});
 
 // 初始化表单字段（优先使用配置中的默认值）
 for (const field of config.fields) {
   formData.value[field.key] = (config.defaultValues as Record<string, string>)?.[field.key] || '';
 }
 
+/** 加载全局设置并应用到只读字段 */
+async function loadGlobalSettings(): Promise<void> {
+  try {
+    const res = await window.electronAPI.settings?.getAll?.();
+    if (res?.success && res.data) {
+      globalSettings.value = res.data;
+      // 将全局设置应用到表单中的只读字段
+      for (const field of config.fields) {
+        if (field.readonly && res.data[field.key]) {
+          formData.value[field.key] = res.data[field.key];
+        }
+      }
+    }
+  } catch {
+    // ignore - 全局设置可选
+  }
+}
+
 onMounted(async () => {
+  // 加载全局设置（通知书的只读字段）
+  await loadGlobalSettings();
+
   // 从项目信息自动填充
   if (props.projectInfo && config.autoFillFromProject) {
     for (const [formKey, projectKey] of Object.entries(config.autoFillFromProject)) {
@@ -144,36 +181,13 @@ function autoImportFromPreviousStages(allData: { stage: string; dataJson: string
   }
 }
 
-async function handleSave(): Promise<void> {
-  saving.value = true;
-  saveError.value = null;
-  try {
-    const res = await window.electronAPI.stages.updateData(
-      props.projectId,
-      props.step.key,
-      JSON.stringify(formData.value),
-      'in_progress'
-    );
-    if (res.success) {
-      hasSavedData.value = true;
-      isEditing.value = false;
-      alert('保存成功');
-    } else {
-      saveError.value = res.message || '保存失败';
-    }
-  } catch (e: unknown) {
-    saveError.value = `保存失败：${(e as Error).message}`;
-  } finally {
-    saving.value = false;
-  }
-}
-
 function handleEdit(): void {
   isEditing.value = true;
 }
 
 async function handleExport(): Promise<void> {
-  if (!config.template) {
+  const tmpl = activeTemplate.value;
+  if (!tmpl) {
     alert('该步骤暂无导出模板');
     return;
   }
@@ -191,7 +205,7 @@ async function handleExport(): Promise<void> {
     if (!exportData.mediumText) exportData.mediumText = '';
     if (!exportData.shortContent) exportData.shortContent = '';
 
-    const validRes = await window.electronAPI.templates.validate(config.template, exportData);
+    const validRes = await window.electronAPI.templates.validate(tmpl, exportData);
     if (validRes.success && validRes.data && validRes.data.missing && validRes.data.missing.length > 0) {
       const missingList = validRes.data.missing.join('、');
       if (!confirm(`以下占位符为空：${missingList}\n\n是否仍要继续导出？`)) {
@@ -204,9 +218,9 @@ async function handleExport(): Promise<void> {
     if (res.success && res.data) {
       let genRes;
       if (isExcel) {
-        genRes = await window.electronAPI.documents.generateExcel(config.template, exportData, res.data.filePath);
+        genRes = await window.electronAPI.documents.generateExcel(tmpl, exportData, res.data.filePath);
       } else {
-        genRes = await window.electronAPI.documents.generate(config.template, exportData, res.data.filePath);
+        genRes = await window.electronAPI.documents.generate(tmpl, exportData, res.data.filePath);
       }
       if (genRes.success) {
         alert('文档已导出：' + res.data!.filePath);
@@ -272,6 +286,79 @@ function getStepLabel(key: string): string {
   ];
   const found = allSteps.find(s => s.key === key);
   return found ? found.label : key;
+}
+
+// ========== 日期校验 ==========
+const noticeSaveDate = ref<string | null>(null);
+
+/** 校验日期字段不能早于通知书日期 */
+function validateDateField(_fieldKey: string): void {
+  if (props.step.key === 'notice') return;
+  if (!noticeSaveDate.value) return;
+
+  const noticeDate = new Date(noticeSaveDate.value);
+  const dateFields = config.fields.filter(f => f.type === 'date');
+  for (const field of dateFields) {
+    const val = formData.value[field.key];
+    if (val && new Date(val) < noticeDate) {
+      saveError.value = `${field.label} 不能早于审计通知书的审计开始日期`;
+      return;
+    }
+  }
+  saveError.value = null;
+}
+
+/** 检查通知书是否已保存 */
+async function checkNoticeSaved(): Promise<boolean> {
+  if (props.step.key === 'notice') return true;
+  try {
+    const res = await window.electronAPI.stages.getByProjectId(props.projectId);
+    if (res.success && res.data) {
+      const noticeData = res.data.find((s: { stage: string }) => s.stage === 'notice');
+      if (noticeData && noticeData.dataJson && noticeData.dataJson !== '{}') {
+        const parsed = JSON.parse(noticeData.dataJson);
+        if (parsed.auditStartDate) {
+          noticeSaveDate.value = parsed.auditStartDate;
+          return true;
+        }
+      }
+    }
+  } catch { /* ignore */ }
+  return false;
+}
+
+/** 保存前校验 */
+async function handleSave(): Promise<void> {
+  // 非通知书阶段，必须先保存通知书
+  if (props.step.key !== 'notice') {
+    const noticeOk = await checkNoticeSaved();
+    if (!noticeOk) {
+      saveError.value = '请先保存审计通知书后才能开启后续阶段';
+      return;
+    }
+  }
+
+  saving.value = true;
+  saveError.value = null;
+  try {
+    const res = await window.electronAPI.stages.updateData(
+      props.projectId,
+      props.step.key,
+      JSON.stringify(formData.value),
+      'in_progress'
+    );
+    if (res.success) {
+      hasSavedData.value = true;
+      isEditing.value = false;
+      alert('保存成功');
+    } else {
+      saveError.value = res.message || '保存失败';
+    }
+  } catch (e: unknown) {
+    saveError.value = `保存失败：${(e as Error).message}`;
+  } finally {
+    saving.value = false;
+  }
 }
 </script>
 
@@ -431,6 +518,19 @@ function getStepLabel(key: string): string {
   color: #6b7280;
   cursor: not-allowed;
   border-color: #e5e7eb;
+}
+
+.gov-input-readonly {
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: default;
+  border-color: #e5e7eb;
+}
+
+.gov-field-readonly-tag {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 400;
 }
 
 .gov-error-msg {

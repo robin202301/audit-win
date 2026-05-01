@@ -40,6 +40,12 @@ declare global {
       documents: {
         generate: (templateName: string, data: Record<string, unknown>, outputPath: string) => Promise<IPCResponse>;
         openSaveDialog: (defaultName: string) => Promise<IPCResponse<{ filePath: string }>>;
+        generateExcel: (templateName: string, data: Record<string, unknown>, outputPath: string) => Promise<IPCResponse>;
+        parseWord: (arrayBuffer: ArrayBuffer) => Promise<IPCResponse>;
+      };
+      settings: {
+        getAll: () => Promise<IPCResponse<Record<string, string>>>;
+        set: (key: string, value: string) => Promise<IPCResponse>;
       };
     };
   }

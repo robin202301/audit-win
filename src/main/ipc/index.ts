@@ -7,6 +7,7 @@ import { WorkingPaperRepo } from '@database/repositories/workingPaperRepo';
 import { SurveyRepo } from '@database/repositories/surveyRepo';
 import { FileRepo } from '@database/repositories/fileRepo';
 import { EvidencePaperLinkRepo } from '@database/repositories/evidencePaperLinkRepo';
+import { SettingsRepo } from '@database/repositories/settingsRepo';
 import { setupDocumentHandlers } from './document';
 import { setupFileHandlers } from './file';
 import { readTemplateText, validateTemplatePlaceholders } from '@main/services/templateService';
@@ -259,6 +260,31 @@ export async function setupIpcHandlers(): Promise<void> {
       return { success: true, data: result };
     } catch (error: unknown) {
       return { success: false, message: `校验模板占位符失败：${(error as Error).message}` };
+    }
+  });
+
+  // 全局设置
+  const settingsRepo = new SettingsRepo(db);
+
+  ipcMain.handle('settings:get-all', async () => {
+    try {
+      const settings = await settingsRepo.getAll();
+      const result: Record<string, string> = {};
+      for (const s of settings) {
+        result[s.key] = s.value;
+      }
+      return { success: true, data: result };
+    } catch (error: unknown) {
+      return { success: false, message: `获取全局设置失败：${(error as Error).message}` };
+    }
+  });
+
+  ipcMain.handle('settings:set', async (_e, key: string, value: string) => {
+    try {
+      await settingsRepo.set(key, value);
+      return { success: true };
+    } catch (error: unknown) {
+      return { success: false, message: `保存设置失败：${(error as Error).message}` };
     }
   });
 }

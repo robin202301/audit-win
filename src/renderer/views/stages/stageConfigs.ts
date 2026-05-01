@@ -1,4 +1,6 @@
 // 各步骤表单配置：定义字段、类型、占位符
+import { NOTICE_TEMPLATES, type AuditType } from '@shared/types';
+
 export interface FormField {
   key: string;
   label: string;
@@ -6,6 +8,7 @@ export interface FormField {
   placeholder?: string;
   rows?: number;
   fullSpan?: boolean;  // 是否占满两列
+  readonly?: boolean;  // 是否只读（用于全局默认值字段）
 }
 
 export interface StageFormConfig {
@@ -20,12 +23,12 @@ export interface StageFormConfig {
 export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   notice: {
     title: '审计通知书',
-    template: '1经济责任审计通知书',
+    // template 根据审计类型动态设置（见 GenericStageForm.vue）
     exportFile: '审计通知书.docx',
     autoFillFromProject: { auditedLeaderUnit: 'auditedTarget' },
     fields: [
-      { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室' },
-      { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：科右前旗审计局' },
+      { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室', readonly: true },
+      { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：科右前旗审计局', readonly: true },
       { key: 'documentNumber', label: '文号', placeholder: '例：审（委）办经责通〔2024〕1号' },
       { key: 'auditedLeaderName', label: '被审计领导干部姓名' },
       { key: 'auditedLeaderPosition', label: '被审计领导干部职务' },
@@ -35,9 +38,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'teamMembers', label: '审计组成员（逗号分隔）', fullSpan: true, placeholder: '请输入成员姓名，用逗号分隔' },
       { key: 'text', label: '配合联系人/财务负责人', fullSpan: true, placeholder: '例：单位财务负责人或联络人姓名' },
       { key: 'ccUnit', label: '抄送单位' },
-      { key: 'issuingOrg', label: '印发机关', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室 科右前旗审计局' },
+      { key: 'issuingOrg', label: '印发机关', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室 科右前旗审计局', readonly: true },
       { key: 'issueDate', label: '印发日期', type: 'date' },
-      { key: 'content', label: '附件内容', type: 'textarea', rows: 4, fullSpan: true, placeholder: '通知书附件内容，留空则不显示' },
+      { key: 'content', label: '附件内容', type: 'textarea', rows: 4, fullSpan: true, placeholder: '通知书附件内容，留空则不显示', readonly: true },
     ],
   },
   eight_prohibitions: {
