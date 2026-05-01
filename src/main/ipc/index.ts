@@ -81,6 +81,14 @@ export async function setupIpcHandlers(): Promise<void> {
   ipcMain.handle('stages:update-data', async (_e, projectId: number, stage: string, dataJson: string, status?: string) => {
     try {
       await stageRepo.updateData(projectId, stage, dataJson, status);
+      // 审计通知书保存后，项目状态变为"实施中"
+      if (stage === 'notice') {
+        await projectRepo.update(projectId, { status: 'active' });
+      }
+      // 审计档案目录保存后，项目状态变为"已归档"
+      if (stage === 'archive_catalog') {
+        await projectRepo.update(projectId, { status: 'archived' });
+      }
       return { success: true };
     } catch (error: unknown) {
       return { success: false, message: `保存阶段数据失败：${(error as Error).message}` };

@@ -58,6 +58,7 @@ import { useProjectStore } from '@stores/project';
 import { WORKFLOW_STEPS, AuditStage } from '@shared/types';
 import StageEvidence from './StageEvidence.vue';
 import StageWorkingPaper from './StageWorkingPaper.vue';
+import StageArchiveCatalog from './StageArchiveCatalog.vue';
 import GenericStageForm from './stages/GenericStageForm.vue';
 import UniversalStageEditor from './stages/UniversalStageEditor.vue';
 import { STAGE_FORM_CONFIGS } from './stages/stageConfigs';
@@ -100,6 +101,7 @@ onMounted(async () => {
 const LIST_STAGES: Record<string, object> = {
   evidence: markRaw(StageEvidence),
   working_paper: markRaw(StageWorkingPaper),
+  archive_catalog: markRaw(StageArchiveCatalog),
 };
 
 const isListComponent = computed(() => !!LIST_STAGES[stage]);
