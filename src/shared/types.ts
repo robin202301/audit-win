@@ -23,7 +23,7 @@ export const WORKFLOW_STEPS: WorkflowStep[] = [
   { stepNumber: 6, key: 'survey', label: '调查了解记录', phase: 1, phaseLabel: '审计准备阶段', template: '7调查了解记录1基本情况表', importFrom: [] },
   { stepNumber: 7, key: 'plan', label: '审计实施方案', phase: 1, phaseLabel: '审计准备阶段', template: '10审计实施方案', importFrom: ['notice', 'survey'] },
   { stepNumber: 8, key: 'task_list', label: '任务清单', phase: 1, phaseLabel: '审计准备阶段', importFrom: ['plan'] },
-  { stepNumber: 9, key: 'interview_record', label: '谈话记录', phase: 1, phaseLabel: '审计准备阶段', importFrom: [] },
+  { stepNumber: 9, key: 'interview_record', label: '谈话记录', phase: 1, phaseLabel: '审计准备阶段', importFrom: [], auditType: '经济责任审计' },
   { stepNumber: 10, key: 'evidence', label: '审计取证单', phase: 2, phaseLabel: '审计实施阶段', template: '11审计取证单', importFrom: ['notice'] },
   { stepNumber: 11, key: 'working_paper', label: '审计工作底稿', phase: 2, phaseLabel: '审计实施阶段', template: '12审计工作底稿', importFrom: ['evidence'] },
   { stepNumber: 12, key: 'task_list_completion', label: '任务清单完成情况', phase: 2, phaseLabel: '审计实施阶段', template: '13任务清单完成情况', importFrom: ['task_list'] },

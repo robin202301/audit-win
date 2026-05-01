@@ -11,6 +11,12 @@
       加载中...
     </div>
 
+    <!-- 审计类型不匹配的步骤 -->
+    <div v-else-if="workflowStep && workflowStep.auditType && !isStepValidForAuditType" class="card text-center py-12 text-gray-500">
+      <p class="text-lg mb-4">该步骤不适用于当前审计类型（{{ workflowStep.auditType }}）</p>
+      <button class="btn-primary" @click="goBack">返回项目</button>
+    </div>
+
     <!-- 取证单/底稿使用专用列表管理组件（1:N关系） -->
     <component
       v-else-if="isListComponent"
@@ -64,6 +70,11 @@ const projectId = props.id;
 const stage = props.stage;
 
 const workflowStep = computed(() => WORKFLOW_STEPS.find(s => s.key === stage));
+const isStepValidForAuditType = computed(() => {
+  const step = WORKFLOW_STEPS.find(s => s.key === stage);
+  if (!step || !step.auditType) return true; // 通用步骤
+  return projectInfo.value?.auditType === step.auditType;
+});
 const fallbackStep = computed(() => {
   // 对于不在 STAGE_FORM_CONFIGS 中的步骤，返回一个最小配置
   const step = WORKFLOW_STEPS.find(s => s.key === stage);

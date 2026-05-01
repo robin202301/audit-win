@@ -74,10 +74,13 @@ const props = defineProps<{ id: string }>();
 const router = useRouter();
 const store = useProjectStore();
 
-// 按阶段分组
+// 按阶段分组（根据审计类型过滤）
 const phases = computed(() => {
   const groups: Record<number, typeof WORKFLOW_STEPS> = {};
+  const auditType = store.currentProject?.auditType;
   for (const step of WORKFLOW_STEPS) {
+    // 仅经济责任审计类型的步骤才显示
+    if (step.auditType && auditType !== step.auditType) continue;
     if (!groups[step.phase]) groups[step.phase] = [];
     groups[step.phase].push(step);
   }
