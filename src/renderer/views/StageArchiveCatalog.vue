@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, shallowRef, watch } from 'vue';
+import { computed, onMounted, ref, shallowRef } from 'vue';
 
 const props = defineProps<{
   projectId: number;
@@ -121,6 +121,11 @@ const currentEntries = computed(() => {
 
 // ========== 自动生成档案目录 ==========
 function autoGenerate(): void {
+  if (Object.keys(volumesData.value).length > 0) {
+    if (!confirm('档案目录已有数据，自动生成将覆盖当前内容，是否继续？')) {
+      return;
+    }
+  }
   autoGenerating.value = true;
 
   const targetName = props.projectInfo?.name || '***';
@@ -422,37 +427,64 @@ async function handleExport(): Promise<void> {
   }
 
   try {
-    const res = await window.electronAPI.documents.openSaveDialog('审计档案目录.xls');
+    const res = await window.electronAPI.documents.openSaveDialog('审计档案目录.xlsx');
     if (res.success && res.data) {
-      // 构建导出数据
-      const exportData: Record<string, unknown> = {};
+      // 直接使用 xlsx 库生成多 sheet 工作簿
+      const XLSX = await import('xlsx');
+      const wb = XLSX.utils.book_new();
 
-      // 将每个卷的数据展平为模板可读格式
+      const volLabels: Record<string, string> = {
+        '1': '卷一',
+        '2': '卷二',
+        '5': '卷五',
+        '9': '卷九',
+      };
+
       for (const [volNum, entries] of Object.entries(volumesData.value)) {
-        let idx = 0;
+        // 表头
+        const rows: string[][] = [
+          ['审计档案卷内目录'],
+          ['案卷题名', '', props.projectInfo?.name || ''],
+          ['序号', '文号', '责任者', '题名', '日期', '页号', '密级'],
+        ];
+
+        // 数据行
+        let seq = 0;
         for (const entry of entries) {
-          if (entry.isSection) continue;
-          idx++;
-          const prefix = `vol${volNum}_${idx}`;
-          exportData[`${prefix}_seq`] = entry.sequenceNo;
-          exportData[`${prefix}_docno`] = entry.documentNumber;
-          exportData[`${prefix}_resp`] = entry.responsible;
-          exportData[`${prefix}_title`] = entry.title;
-          exportData[`${prefix}_date`] = entry.date;
-          exportData[`${prefix}_page`] = entry.pageNumber;
-          exportData[`${prefix}_secret`] = entry.classification;
+          if (entry.isSection) {
+            rows.push([entry.title, '', '', '', '', '', '']);
+            continue;
+          }
+          seq++;
+          rows.push([
+            entry.sequenceNo || String(seq),
+            entry.documentNumber,
+            entry.responsible,
+            entry.title,
+            entry.date,
+            entry.pageNumber,
+            entry.classification,
+          ]);
         }
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        // 设置列宽
+        ws['!cols'] = [
+          { wch: 8 },   // 序号
+          { wch: 18 },  // 文号
+          { wch: 14 },  // 责任者
+          { wch: 50 },  // 题名
+          { wch: 12 },  // 日期
+          { wch: 8 },   // 页号
+          { wch: 8 },   // 密级
+        ];
+
+        const sheetName = volLabels[volNum] || `卷${volNum}`;
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
       }
 
-      // 保存每个卷的完整数据（用于多 sheet 导出）
-      exportData.volumes = volumesData.value;
-
-      const genRes = await window.electronAPI.documents.generateExcel('审计目录', exportData, res.data.filePath);
-      if (genRes.success) {
-        alert('档案目录已导出：' + res.data!.filePath);
-      } else {
-        alert('导出失败：' + (genRes.message || '未知错误'));
-      }
+      XLSX.writeFile(wb, res.data.filePath);
+      alert('档案目录已导出：' + res.data!.filePath);
     }
   } catch (e: unknown) {
     alert('导出失败：' + (e as Error).message);
@@ -562,7 +594,7 @@ function formatToDate(dateStr: string): string {
   return dateStr;
 }
 
-init();
+onMounted(() => { init(); });
 </script>
 
 <style scoped>

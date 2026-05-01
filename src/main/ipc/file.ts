@@ -55,10 +55,9 @@ export function setupFileHandlers(fileRepo: FileRepo): void {
 
   ipcMain.handle('files:delete', async (_event, id: number) => {
     try {
-      const attachments = await fileRepo.getByEntity('', 0);
-      const file = attachments.find((f: { id: number }) => f.id === id);
-      if (file && fs.existsSync((file as { filePath: string }).filePath)) {
-        fs.unlinkSync((file as { filePath: string }).filePath);
+      const file = await fileRepo.getById(id);
+      if (file && fs.existsSync(file.filePath)) {
+        fs.unlinkSync(file.filePath);
       }
       await fileRepo.delete(id);
       return { success: true };

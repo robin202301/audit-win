@@ -99,7 +99,7 @@ function goToStep(stepKey: string): void {
 }
 
 function getStatusClass(stepKey: string): string {
-  const status = store.getStageStatus(stepKey as any);
+  const status = store.getStageStatus(stepKey);
   const base = 'gov-status-tag';
   switch (status) {
     case 'completed':
@@ -112,7 +112,7 @@ function getStatusClass(stepKey: string): string {
 }
 
 function getStatusLabel(stepKey: string): string {
-  const status = store.getStageStatus(stepKey as any);
+  const status = store.getStageStatus(stepKey);
   const map: Record<string, string> = {
     not_started: '未开始',
     in_progress: '进行中',

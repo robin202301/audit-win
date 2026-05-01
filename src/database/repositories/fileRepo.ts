@@ -34,6 +34,13 @@ export class FileRepo {
     return result.lastID!;
   }
 
+  async getById(id: number): Promise<FileAttachment | undefined> {
+    return this.db.get<FileAttachment>(
+      'SELECT * FROM file_attachments WHERE id = ?',
+      id
+    );
+  }
+
   async delete(id: number): Promise<void> {
     await this.db.run('DELETE FROM file_attachments WHERE id = ?', id);
   }
