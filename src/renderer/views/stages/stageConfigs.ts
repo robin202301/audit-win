@@ -1,6 +1,4 @@
 // 各步骤表单配置：定义字段、类型、占位符
-import { NOTICE_TEMPLATES, type AuditType } from '@shared/types';
-
 export interface FormField {
   key: string;
   label: string;
@@ -8,7 +6,6 @@ export interface FormField {
   placeholder?: string;
   rows?: number;
   fullSpan?: boolean;  // 是否占满两列
-  readonly?: boolean;  // 是否只读（用于全局默认值字段）
 }
 
 export interface StageFormConfig {
@@ -26,9 +23,26 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     // template 根据审计类型动态设置（见 GenericStageForm.vue）
     exportFile: '审计通知书.docx',
     autoFillFromProject: { auditedLeaderUnit: 'auditedTarget' },
+    defaultValues: {
+      auditCommitteeOffice: '中共科右前旗审计委员会办公室',
+      auditOrg: '科右前旗审计局',
+      content: `审计"八不准"工作纪律
+
+一、不准由被审计单位和个人报销或补贴住宿、餐饮、交通、通讯、医疗等费用。
+二、不准接受被审计单位和个人赠送的礼品礼金，或未经批准通过授课等方式获取报酬。
+三、不准参加被审计单位和个人安排的宴请、娱乐、旅游等活动。
+四、不准利用审计工作知悉的国家秘密、商业秘密和内部信息谋取利益。
+五、不准利用审计职权干预被审计单位依法管理的资金、资产、资源的审批或分配使用。
+六、不准向被审计单位推销商品或介绍业务。
+七、不准接受被审计单位和个人的请托干预审计工作。
+八、不准向被审计单位和个人提出任何与审计工作无关的要求。
+
+违反上述工作要求和工作纪律的，严格按照规定追究责任。
+举报电话：0482-8399314`,
+    },
     fields: [
-      { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室', readonly: true },
-      { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：科右前旗审计局', readonly: true },
+      { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室' },
+      { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：科右前旗审计局' },
       { key: 'documentNumber', label: '文号', placeholder: '例：审（委）办经责通〔2024〕1号' },
       { key: 'auditedLeaderName', label: '被审计领导干部姓名' },
       { key: 'auditedLeaderPosition', label: '被审计领导干部职务' },
@@ -38,9 +52,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'teamMembers', label: '审计组成员（逗号分隔）', fullSpan: true, placeholder: '请输入成员姓名，用逗号分隔' },
       { key: 'text', label: '配合联系人/财务负责人', fullSpan: true, placeholder: '例：单位财务负责人或联络人姓名' },
       { key: 'ccUnit', label: '抄送单位' },
-      { key: 'issuingOrg', label: '印发机关', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室 科右前旗审计局', readonly: true },
+      { key: 'issuingOrg', label: '印发机关', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室 科右前旗审计局' },
       { key: 'issueDate', label: '印发日期', type: 'date' },
-      { key: 'content', label: '附件内容', type: 'textarea', rows: 4, fullSpan: true, placeholder: '通知书附件内容，留空则不显示', readonly: true },
+      { key: 'content', label: '附件', type: 'textarea', rows: 4, fullSpan: true, placeholder: '通知书附件内容，留空则不显示' },
     ],
   },
   eight_prohibitions: {

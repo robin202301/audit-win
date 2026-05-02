@@ -180,22 +180,4 @@ export async function runMigrations(db: Database): Promise<void> {
       UPDATE projects SET updated_at = datetime('now') WHERE id = NEW.id;
     END;
   `);
-
-  // 全局设置表
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL DEFAULT '',
-      label TEXT NOT NULL DEFAULT '',
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
-
-  await db.exec(`
-    INSERT OR IGNORE INTO settings (key, value, label) VALUES
-      ('auditCommitteeOffice', '', '审计委员会办公室'),
-      ('auditOrg', '', '审计机关全称'),
-      ('issuingOrg', '', '印发机关'),
-      ('content', '', '附件内容');
-  `);
 }

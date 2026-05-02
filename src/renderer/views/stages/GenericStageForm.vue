@@ -32,18 +32,14 @@
 
     <div class="gov-form-grid">
       <div v-for="field in config.fields" :key="field.key" :class="field.fullSpan ? 'gov-span-2' : ''">
-        <label class="gov-field-label">
-          {{ field.label }}
-          <span v-if="field.readonly" class="gov-field-readonly-tag">（全局设置）</span>
-        </label>
+        <label class="gov-field-label">{{ field.label }}</label>
         <textarea
           v-if="field.type === 'textarea'"
           v-model="formData[field.key]"
           class="gov-input"
-          :class="{ 'gov-input-readonly': field.readonly }"
           :rows="field.rows || 3"
           :placeholder="field.placeholder || ''"
-          :readonly="field.readonly || (hasSavedData && !isEditing)"
+          :readonly="hasSavedData && !isEditing"
         />
         <input
           v-else-if="field.type === 'date'"
@@ -58,9 +54,8 @@
           v-else
           v-model="formData[field.key]"
           class="gov-input"
-          :class="{ 'gov-input-readonly': field.readonly }"
           :placeholder="field.placeholder || '请输入' + field.label"
-          :readonly="field.readonly || (hasSavedData && !isEditing)"
+          :readonly="hasSavedData && !isEditing"
         />
       </div>
     </div>
@@ -97,34 +92,13 @@ const saving = ref(false);
 const saveError = ref<string | null>(null);
 const hasSavedData = ref(false);
 const isEditing = ref(false);
-const globalSettings = ref<Record<string, string>>({});
 
 // 初始化表单字段（优先使用配置中的默认值）
 for (const field of config.fields) {
   formData.value[field.key] = (config.defaultValues as Record<string, string>)?.[field.key] || '';
 }
 
-/** 加载全局设置并应用到只读字段 */
-async function loadGlobalSettings(): Promise<void> {
-  try {
-    const res = await window.electronAPI.settings?.getAll?.();
-    if (res?.success && res.data) {
-      globalSettings.value = res.data;
-      // 将全局设置应用到表单中的只读字段
-      for (const field of config.fields) {
-        if (field.readonly && res.data[field.key]) {
-          formData.value[field.key] = res.data[field.key];
-        }
-      }
-    }
-  } catch {
-    // ignore - 全局设置可选
-  }
-}
-
 onMounted(async () => {
-  // 加载全局设置（通知书的只读字段）
-  await loadGlobalSettings();
 
   // 从项目信息自动填充
   if (props.projectInfo && config.autoFillFromProject) {
@@ -518,19 +492,6 @@ async function handleSave(): Promise<void> {
   color: #6b7280;
   cursor: not-allowed;
   border-color: #e5e7eb;
-}
-
-.gov-input-readonly {
-  background: #f9fafb;
-  color: #6b7280;
-  cursor: default;
-  border-color: #e5e7eb;
-}
-
-.gov-field-readonly-tag {
-  font-size: 11px;
-  color: #9ca3af;
-  font-weight: 400;
 }
 
 .gov-error-msg {

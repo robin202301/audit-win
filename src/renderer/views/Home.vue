@@ -8,12 +8,6 @@
           <p class="gov-page-subtitle">管理所有审计项目，点击进入项目详情</p>
         </div>
         <div class="gov-header-actions">
-          <button class="gov-btn-settings" @click="openSettings">
-            <svg class="w-4 h-4 mr-1" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M9.4 1.2a1 1 0 0 1 1.2 0l1.7 1.2a1 1 0 0 0 .8.2l2-.3a1 1 0 0 1 1.1.6l1.2 2a1 1 0 0 1 0 1l-.3 2a1 1 0 0 0 .2.8l1.2 1.7a1 1 0 0 1 0 1.2l-1.2 1.7a1 1 0 0 0-.2.8l.3 2a1 1 0 0 1-.6 1.1l-2 1.2a1 1 0 0 1-1 0l-2-.3a1 1 0 0 0-.8.2l-1.7 1.2a1 1 0 0 1-1.2 0l-1.7-1.2a1 1 0 0 0-.8-.2l-2 .3a1 1 0 0 1-1.1-.6l-1.2-2a1 1 0 0 1 0-1l.3-2a1 1 0 0 0-.2-.8L.4 6.6a1 1 0 0 1 0-1.2l1.2-1.7a1 1 0 0 0 .2-.8l-.3-2a1 1 0 0 1 .6-1.1L4.2.5a1 1 0 0 1 1 0l2 .3a1 1 0 0 0 .8-.2L9.4 0zM8 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
-            </svg>
-            全局设置
-          </button>
           <div class="gov-search-wrapper">
             <svg class="gov-search-icon" viewBox="0 0 16 16" fill="currentColor">
               <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.656a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
@@ -133,10 +127,6 @@ const PAGE_SIZE = 9;
 
 const router = useRouter();
 const store = useProjectStore();
-
-function openSettings(): void {
-  router.push({ name: 'settings' });
-}
 
 const showCreateDialog = ref(false);
 const searchKeyword = ref('');
@@ -305,25 +295,6 @@ function formatDate(dateStr: string): string {
 
 .gov-btn-search:hover {
   background: rgba(139, 0, 0, 0.08);
-}
-
-.gov-btn-settings {
-  padding: 6px 14px;
-  background: #fff;
-  border: 1px solid #e8d5b7;
-  border-radius: 6px;
-  color: #8B0000;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.gov-btn-settings:hover {
-  background: #fff8f0;
-  border-color: #c2410c;
 }
 
 .gov-load-more {
