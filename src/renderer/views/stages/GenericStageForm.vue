@@ -301,6 +301,23 @@ async function checkNoticeSaved(): Promise<boolean> {
   return false;
 }
 
+/** 校验所有日期字段不能早于通知书日期 */
+function validateAllDates(): boolean {
+  if (props.step.key === 'notice') return true;
+  if (!noticeSaveDate.value) return true;
+
+  const noticeDate = new Date(noticeSaveDate.value);
+  const dateFields = config.fields.filter(f => f.type === 'date');
+  for (const field of dateFields) {
+    const val = formData.value[field.key];
+    if (val && new Date(val) < noticeDate) {
+      saveError.value = `${field.label} 不能早于审计通知书的审计开始日期`;
+      return false;
+    }
+  }
+  return true;
+}
+
 /** 保存前校验 */
 async function handleSave(): Promise<void> {
   // 非通知书阶段，必须先保存通知书
@@ -310,6 +327,8 @@ async function handleSave(): Promise<void> {
       saveError.value = '请先保存审计通知书后才能开启后续阶段';
       return;
     }
+    // 校验所有日期字段
+    if (!validateAllDates()) return;
   }
 
   saving.value = true;

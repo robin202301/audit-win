@@ -4,6 +4,7 @@
       <h2 class="gov-archive-title">审计档案目录</h2>
       <div class="gov-archive-actions">
         <button class="gov-btn-auto" @click="autoGenerate">自动生成</button>
+        <button class="gov-btn-add" @click="addRow">添加行</button>
         <button class="gov-btn-export" @click="handleExport">导出Excel</button>
         <button v-if="hasUnsavedChanges" class="gov-btn-save" @click="handleSave">保存</button>
       </div>
@@ -44,13 +45,14 @@
             <th class="col-date">日期</th>
             <th class="col-page">页号</th>
             <th class="col-secret">密级</th>
+            <th class="col-action">操作</th>
           </tr>
         </thead>
         <tbody>
           <template v-for="(entry, idx) in currentEntries" :key="idx">
             <!-- 分组标题行 -->
             <tr v-if="entry.isSection" class="row-section">
-              <td colspan="7">{{ entry.title }}</td>
+              <td colspan="8">{{ entry.title }}</td>
             </tr>
             <!-- 数据行 -->
             <tr v-else class="row-data">
@@ -61,6 +63,9 @@
               <td><input v-model="entry.date" class="tbl-input" type="text" placeholder="YYYYMMDD" /></td>
               <td><input v-model="entry.pageNumber" class="tbl-input" /></td>
               <td><input v-model="entry.classification" class="tbl-input" /></td>
+              <td class="col-action">
+                <button class="tbl-btn-delete" @click="deleteRow(idx)" title="删除此行">&times;</button>
+              </td>
             </tr>
           </template>
         </tbody>
@@ -104,6 +109,35 @@ const hasUnsavedChanges = ref(false);
 
 // 原始数据（保存后的快照）
 const volumesData = ref<Record<string, ArchiveEntry[]>>({});
+
+/** 添加空行到当前卷 */
+function addRow(): void {
+  const vol = activeVolume.value;
+  if (!volumesData.value[vol]) volumesData.value[vol] = [];
+  // 计算下一个序号
+  const entries = volumesData.value[vol].filter(e => !e.isSection);
+  const nextSeq = String(entries.length + 1);
+  volumesData.value[vol].push(dataRow(nextSeq, '', '', '', '', '', ''));
+  hasUnsavedChanges.value = true;
+}
+
+/** 删除指定行 */
+function deleteRow(idx: number): void {
+  const vol = activeVolume.value;
+  const entries = volumesData.value[vol] || [];
+  const entry = entries[idx];
+  if (entry && !entry.isSection) {
+    volumesData.value[vol].splice(idx, 1);
+    // 重新排序序号
+    let seq = 1;
+    for (const e of volumesData.value[vol]) {
+      if (!e.isSection) {
+        e.sequenceNo = String(seq++);
+      }
+    }
+    hasUnsavedChanges.value = true;
+  }
+}
 
 const volumes = computed((): Volume[] => {
   const nums = ['1', '2', '5', '9'];
@@ -830,6 +864,11 @@ onMounted(() => { init(); });
   width: 60px;
 }
 
+.gov-archive-table .col-action {
+  width: 40px;
+  text-align: center;
+}
+
 .tbl-input {
   width: 100%;
   border: none;
@@ -855,5 +894,41 @@ onMounted(() => { init(); });
 
 .row-data:hover {
   background: #fff8f0;
+}
+
+/* 添加行按钮 */
+.gov-btn-add {
+  padding: 6px 14px;
+  background: #fff;
+  border: 1px solid #059669;
+  border-radius: 6px;
+  color: #059669;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.gov-btn-add:hover {
+  background: #ecfdf5;
+}
+
+/* 表格删除按钮 */
+.tbl-btn-delete {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  font-size: 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.tbl-btn-delete:hover {
+  background: #fef2f2;
 }
 </style>
