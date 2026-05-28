@@ -191,11 +191,14 @@ export function getTemplatePlaceholders(templateName: string): string[] {
     const rawContent = (docFile as unknown as { _data: { getContent: () => string | ArrayBuffer } })._data.getContent();
     const xml = typeof rawContent === 'string' ? rawContent : Buffer.from(rawContent).toString('utf8');
 
-    // 提取所有 {xxx} 占位符
+    // 先去除所有 XML 标签获取纯文本（Word 经常把 {xxx} 占位符拆分成多个 run）
+    const plainText = xml.replace(/<[^>]+>/g, '');
+
+    // 从纯文本中提取所有 {xxx} 占位符
     const placeholders = new Set<string>();
     const placeholderRegex = /\{([^{}]+)\}/g;
     let match;
-    while ((match = placeholderRegex.exec(xml)) !== null) {
+    while ((match = placeholderRegex.exec(plainText)) !== null) {
       const name = match[1].trim();
       // 过滤掉 docxtemplater 的特殊语法（如 #if, /if, #for, /for 等）
       if (name && !name.startsWith('#') && !name.startsWith('/') && !name.startsWith('^')) {
