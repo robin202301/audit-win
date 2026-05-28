@@ -109,7 +109,7 @@ const formData = ref<Record<string, string>>({});
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 const hasSavedData = ref(false);
-const isEditing = ref(false);
+const isEditing = ref(true);
 const editKey = ref(0);  // 用于强制 DOM 重新渲染
 const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
 
@@ -119,9 +119,6 @@ for (const field of config.fields) {
 }
 
 onMounted(async () => {
-  // 首次进入时设为编辑态
-  isEditing.value = true;
-
   // 从项目信息自动填充
   if (props.projectInfo && config.autoFillFromProject) {
     for (const [formKey, projectKey] of Object.entries(config.autoFillFromProject)) {
