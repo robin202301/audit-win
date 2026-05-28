@@ -4,13 +4,23 @@ import fs from 'fs';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 
-function getTemplatePath(templateName: string): string {
+function getTemplateBasePath(): string {
   let basePath: string;
   if (process.env.NODE_ENV === 'development') {
+    // 开发模式：从项目根目录查找（兼容不同的编译输出位置）
     basePath = path.resolve(__dirname, '../../../../resources/templates');
+    // 如果该路径不存在，尝试从 app.getAppPath() 推算（Electron 开发时指向项目根目录）
+    if (!fs.existsSync(basePath) && app && !app.isPackaged) {
+      basePath = path.resolve(app.getAppPath(), 'resources/templates');
+    }
   } else {
     basePath = path.join(process.resourcesPath, 'resources', 'templates');
   }
+  return basePath;
+}
+
+function getTemplatePath(templateName: string): string {
+  const basePath = getTemplateBasePath();
 
   // 尝试匹配模板文件名（支持中文命名和多种扩展名）
   const possibleNames = [
@@ -26,6 +36,13 @@ function getTemplatePath(templateName: string): string {
     if (fs.existsSync(filePath)) {
       return filePath;
     }
+  }
+
+  // 如果直接匹配失败，尝试从目录中模糊匹配（处理路径偏移问题）
+  if (fs.existsSync(basePath)) {
+    const allFiles = fs.readdirSync(basePath);
+    const match = allFiles.find(f => f === `${templateName}.docx` || f === `${templateName}.doc` || f === `${templateName}.xlsx` || f === `${templateName}.xls` || f === templateName);
+    if (match) return path.join(basePath, match);
   }
 
   throw new Error(`模板文件不存在：${templateName}，查找路径：${basePath}`);
@@ -51,12 +68,7 @@ export async function generateDocument(
 }
 
 export function getTemplatePathByName(templateName: string): string {
-  let basePath: string;
-  if (process.env.NODE_ENV === 'development') {
-    basePath = path.resolve(__dirname, '../../../../resources/templates');
-  } else {
-    basePath = path.join(process.resourcesPath, 'resources', 'templates');
-  }
+  const basePath = getTemplateBasePath();
 
   // 尝试匹配模板文件名（支持中文命名和多种扩展名）
   const possibleNames = [
@@ -110,12 +122,7 @@ export async function generateExcel(
 }
 
 export function getAvailableTemplates(): string[] {
-  let basePath: string;
-  if (process.env.NODE_ENV === 'development') {
-    basePath = path.resolve(__dirname, '../../../../resources/templates');
-  } else {
-    basePath = path.join(process.resourcesPath, 'resources', 'templates');
-  }
+  const basePath = getTemplateBasePath();
 
   if (!fs.existsSync(basePath)) return [];
 
