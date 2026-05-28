@@ -10,7 +10,7 @@
       <div class="flex gap-2">
         <button class="btn-secondary" @click="handleUploadTemplate">上传模板</button>
         <button class="btn-secondary" @click="handleResetTemplate">重置为模板</button>
-        <button v-if="hasSavedData && editMode === 'readonly'" class="btn-secondary gov-btn-edit" @click="handleEdit">修改</button>
+        <button v-if="hasSavedData && !isEditing" class="btn-secondary gov-btn-edit" @click="handleEdit">修改</button>
         <button class="btn-primary" @click="handleSave">保存</button>
         <button class="btn-primary" @click="handleExport">导出文档</button>
       </div>
@@ -29,15 +29,19 @@
       <span><strong>审计类型：</strong>{{ projectInfo.auditType }}</span>
     </div>
 
-    <!-- 大输入框 -->
+    <!-- 编辑态：大输入框 -->
     <textarea
+      v-if="isEditing" :key="'edit-' + editKey"
       v-model="content"
-      class="input-base w-full font-mono text-sm leading-relaxed"
+      class="input-base w-full font-mono text-sm leading-relaxed gov-textarea-editable"
       rows="24"
       placeholder="模板内容将在此显示，可编辑修改..."
-      :readonly="isReadonly"
-      :class="{ 'gov-input-readonly': isReadonly }"
     />
+    <!-- 只读态：纯文本展示（非 textarea，从根本上避免 readonly 兼容性问题） -->
+    <div
+      v-else :key="'view-' + editKey"
+      class="input-base w-full font-mono text-sm leading-relaxed gov-textarea-display"
+    >{{ content || '（暂无内容）' }}</div>
 
     <div v-if="saving" class="mt-3 text-blue-600">保存中...</div>
     <div v-if="saveError" class="mt-3 text-red-600">{{ saveError }}</div>
@@ -46,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 
 const props = defineProps<{
@@ -60,8 +64,8 @@ const saving = ref(false);
 const saveError = ref<string | null>(null);
 const saveSuccess = ref(false);
 const hasSavedData = ref(false);
-const editMode = ref<"readonly" | "editing" | "new">("new");
-const isReadonly = computed(() => editMode.value === "readonly");
+const isEditing = ref(true);
+const editKey = ref(0);
 const templateText = ref(''); // 原始模板文本
 
 onMounted(async () => {
@@ -87,7 +91,6 @@ async function autoImportFromPreviousStages(): Promise<void> {
         if (srcData && srcData.dataJson && srcData.dataJson !== '{}') {
           try {
             const parsed = JSON.parse(srcData.dataJson);
-            // 将前序数据以注释形式追加到内容末尾
             const importNotes = Object.entries(parsed)
               .filter(([_, v]) => v)
               .map(([k, v]) => `【${getStepLabel(srcKey)} - ${k}】${v}`)
@@ -112,7 +115,6 @@ async function loadTemplateText(): Promise<void> {
     return;
   }
   try {
-    // 通过 IPC 读取模板文件文本内容
     const res = await window.electronAPI.templates.readTemplateText(props.step.template);
     if (res.success && res.data) {
       templateText.value = res.data;
@@ -122,10 +124,9 @@ async function loadTemplateText(): Promise<void> {
   }
 }
 
-function applyPlaceholders(): Promise<void> {
+function applyPlaceholders(): void {
   let text = templateText.value;
   if (!text) return;
-  // 替换项目相关占位符
   text = text.replace(/\{projectName\}/g, props.projectInfo.name);
   text = text.replace(/\{auditedUnit\}/g, props.projectInfo.auditedTarget);
   text = text.replace(/\{auditProjectName\}/g, props.projectInfo.name);
@@ -133,7 +134,6 @@ function applyPlaceholders(): Promise<void> {
   text = text.replace(/\{auditedLeaderName\}/g, props.projectInfo.auditedTarget);
   text = text.replace(/\{auditType\}/g, props.projectInfo.auditType);
   content.value = text;
-  return;
 }
 
 async function loadSavedContent(): Promise<void> {
@@ -146,7 +146,7 @@ async function loadSavedContent(): Promise<void> {
         if (parsed.content) {
           content.value = parsed.content;
           hasSavedData.value = true;
-          editMode.value = "readonly";
+          isEditing.value = false;
         }
       }
     }
@@ -169,7 +169,7 @@ async function handleSave(): Promise<void> {
     );
     if (res.success) {
       hasSavedData.value = true;
-      editMode.value = "readonly";
+      isEditing.value = false;
       saveSuccess.value = true;
       setTimeout(() => { saveSuccess.value = false; }, 2000);
     } else {
@@ -183,11 +183,8 @@ async function handleSave(): Promise<void> {
 }
 
 function handleEdit(): void {
-  editMode.value = "editing";
-  nextTick(() => {
-    const firstInput = document.querySelector(".gov-input:not([readonly])") as HTMLElement;
-    if (firstInput) firstInput.focus();
-  });
+  isEditing.value = true;
+  editKey.value++;
 }
 
 async function handleExport(): Promise<void> {
@@ -207,7 +204,6 @@ async function handleExport(): Promise<void> {
     exportData.val = '';
     exportData.shortText = '';
 
-    // 校验占位符
     const validRes = await window.electronAPI.templates.validate(props.step.template, exportData);
     if (validRes.success && validRes.data && validRes.data.missing && validRes.data.missing.length > 0) {
       const missingList = validRes.data.missing.join('、');
@@ -254,10 +250,9 @@ async function handleUploadTemplate(): Promise<void> {
   input.click();
 }
 
-function handleResetTemplate(): Promise<void> {
+function handleResetTemplate(): void {
   if (!confirm('确定要重置为模板默认内容吗？当前编辑的内容将丢失。')) return;
   applyPlaceholders();
-  return;
 }
 
 function getStepLabel(key: string): string {
@@ -303,22 +298,34 @@ function getStepLabel(key: string): string {
   color: #c2410c !important;
 }
 
-.input-base[readonly], .gov-input-readonly {
-  background: #f3f4f6;
-  color: #6b7280;
-  cursor: not-allowed;
-  border-color: #e5e7eb;
-}
-
 .gov-btn-edit:hover {
   background: #ffedd5 !important;
   border-color: #f97316 !important;
 }
 
-.input-base[readonly] {
+/* 编辑态 textarea */
+.gov-textarea-editable {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #faf8f5;
+  transition: border-color 0.2s;
+}
+
+.gov-textarea-editable:focus {
+  outline: none;
+  border-color: #8B0000;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+
+/* 只读态：纯文本展示 div */
+.gov-textarea-display {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 12px;
   background: #f3f4f6;
   color: #6b7280;
-  cursor: not-allowed;
-  border-color: #e5e7eb;
+  cursor: default;
+  min-height: 200px;
 }
 </style>
