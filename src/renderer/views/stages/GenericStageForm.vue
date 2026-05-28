@@ -18,6 +18,10 @@
           </svg>
           {{ saving ? '保存中...' : '保存' }}
         </button>
+        <button v-if="hasSavedData && stepStatus !== 'completed'" class="gov-btn-complete" @click="handleMarkComplete">
+          标记完成
+        </button>
+        <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
         <button class="gov-btn-export" @click="handleExport">导出文档</button>
       </div>
     </div>
@@ -92,6 +96,7 @@ const saving = ref(false);
 const saveError = ref<string | null>(null);
 const hasSavedData = ref(false);
 const isEditing = ref(false);
+const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
 
 // 初始化表单字段（优先使用配置中的默认值）
 for (const field of config.fields) {
@@ -127,6 +132,9 @@ onMounted(async () => {
           }
         }
         hasSavedData.value = true;
+        if (stageData.status) {
+          stepStatus.value = stageData.status;
+        }
       }
     }
   } catch {
@@ -244,7 +252,9 @@ function getStepLabel(key: string): string {
   const allSteps = [
     { key: 'work_plan', label: '审计工作方案' },
     { key: 'notice', label: '审计通知' },
-    { key: 'survey', label: '调查了解记录' },
+    { key: 'survey', label: '被审计单位基本情况表' },
+    { key: 'survey_assessment', label: '评估重要性可能性' },
+    { key: 'survey_measures', label: '确定审计事项和应对措施' },
     { key: 'plan', label: '审计实施方案' },
     { key: 'task_list', label: '任务清单' },
     { key: 'evidence', label: '审计取证单' },
@@ -343,6 +353,7 @@ async function handleSave(): Promise<void> {
     if (res.success) {
       hasSavedData.value = true;
       isEditing.value = false;
+      stepStatus.value = 'in_progress';
       alert('保存成功');
     } else {
       saveError.value = res.message || '保存失败';
@@ -351,6 +362,26 @@ async function handleSave(): Promise<void> {
     saveError.value = `保存失败：${(e as Error).message}`;
   } finally {
     saving.value = false;
+  }
+}
+
+/** 标记当前阶段为已完成 */
+async function handleMarkComplete(): Promise<void> {
+  try {
+    const res = await window.electronAPI.stages.updateData(
+      props.projectId,
+      props.step.key,
+      JSON.stringify(formData.value),
+      'completed'
+    );
+    if (res.success) {
+      stepStatus.value = 'completed';
+      alert('已标记为完成');
+    } else {
+      alert('操作失败：' + (res.message || '未知错误'));
+    }
+  } catch (e: unknown) {
+    alert('操作失败：' + (e as Error).message);
   }
 }
 </script>
@@ -450,6 +481,34 @@ async function handleSave(): Promise<void> {
 .gov-btn-export:hover {
   background: linear-gradient(135deg, #a00000, #c42828);
   transform: translateY(-1px);
+}
+
+.gov-btn-complete {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.gov-btn-complete:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  transform: translateY(-1px);
+}
+
+.gov-status-complete {
+  padding: 6px 14px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* 数据引用提示 */
