@@ -11,14 +11,14 @@
         <button v-if="step.importFrom && step.importFrom.length > 0" class="gov-btn-secondary" @click="handleImport">
           导入前序数据
         </button>
-        <button v-if="hasSavedData && !isEditing" class="gov-btn-edit" @click="handleEdit">修改</button>
-        <button v-if="!hasSavedData || isEditing" class="gov-btn-primary" @click="handleSave">
+        <button v-if="hasSavedData && editMode === 'readonly'" class="gov-btn-edit" @click="handleEdit">修改</button>
+        <button v-if="editMode !== 'readonly'" class="gov-btn-primary" @click="handleSave">
           <svg v-if="saving" class="w-3 h-3 mr-1 animate-spin" viewBox="0 0 16 16" fill="currentColor">
             <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="20 12"/>
           </svg>
           {{ saving ? '保存中...' : '保存' }}
         </button>
-        <button v-if="hasSavedData && stepStatus !== 'completed'" class="gov-btn-complete" @click="handleMarkComplete">
+        <button v-if="hasSavedData && stepStatus !== 'completed' && editMode === 'readonly'" class="gov-btn-complete" @click="handleMarkComplete">
           标记完成
         </button>
         <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
@@ -41,25 +41,28 @@
           v-if="field.type === 'textarea'"
           v-model="formData[field.key]"
           class="gov-input"
+          :class="{ 'gov-input-readonly': isReadonly }"
           :rows="field.rows || 3"
           :placeholder="field.placeholder || ''"
-          :readonly="hasSavedData && !isEditing"
+          :readonly="isReadonly"
         />
         <input
           v-else-if="field.type === 'date'"
           v-model="formData[field.key]"
           type="date"
           class="gov-input"
+          :class="{ 'gov-input-readonly': isReadonly }"
           :placeholder="field.placeholder || ''"
-          :readonly="hasSavedData && !isEditing"
+          :readonly="isReadonly"
           @change="validateDateField(field.key)"
         />
         <input
           v-else
           v-model="formData[field.key]"
           class="gov-input"
+          :class="{ 'gov-input-readonly': isReadonly }"
           :placeholder="field.placeholder || '请输入' + field.label"
-          :readonly="hasSavedData && !isEditing"
+          :readonly="isReadonly"
         />
       </div>
     </div>
@@ -69,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 import { STAGE_FORM_CONFIGS } from './stageConfigs';
 import { NOTICE_TEMPLATES } from '@shared/types';
@@ -101,8 +104,12 @@ const formData = ref<Record<string, string>>({});
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 const hasSavedData = ref(false);
-const isEditing = ref(false);
+// 使用三态模式替代布尔值，避免 Vue 响应式切换 readonly 属性时的浏览器缓存问题
+const editMode = ref<'readonly' | 'editing' | 'new'>('new');
 const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
+
+// 只读状态计算——明确返回布尔值，避免属性绑定歧义
+const isReadonly = computed(() => editMode.value === 'readonly');
 
 // 初始化表单字段（优先使用配置中的默认值）
 for (const field of config.fields) {
@@ -138,6 +145,7 @@ onMounted(async () => {
           }
         }
         hasSavedData.value = true;
+        editMode.value = 'readonly';
         if (stageData.status) {
           stepStatus.value = stageData.status;
         }
@@ -169,8 +177,27 @@ function autoImportFromPreviousStages(allData: { stage: string; dataJson: string
   }
 }
 
+/** 进入编辑模式 */
 function handleEdit(): void {
-  isEditing.value = true;
+  editMode.value = 'editing';
+  saveError.value = null;
+  // DOM 更新后自动聚焦第一个输入框，给用户明确反馈
+  nextTick(() => {
+    const firstInput = document.querySelector('.gov-form-grid .gov-input:not([readonly])') as HTMLElement;
+    if (firstInput) firstInput.focus();
+  });
+}
+
+/** 将 ISO 日期（2026-01-01）转换为中文格式（2026年1月1日） */
+function formatDateToChinese(dateStr: string): string {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr; // 无效日期，原样返回
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  } catch {
+    return dateStr;
+  }
 }
 
 async function handleExport(): Promise<void> {
@@ -181,7 +208,16 @@ async function handleExport(): Promise<void> {
   }
   try {
     // 校验模板占位符
-    const exportData = { ...formData.value };
+    const exportData: Record<string, string> = {};
+    // 复制表单数据，日期字段自动转换为中文格式
+    for (const field of config.fields) {
+      const val = formData.value[field.key] || '';
+      if (field.type === 'date' && val) {
+        exportData[field.key] = formatDateToChinese(val);
+      } else {
+        exportData[field.key] = val;
+      }
+    }
     if (props.projectInfo) {
       if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
       if (!exportData.auditProject) exportData.auditProject = props.projectInfo.name;
@@ -360,7 +396,7 @@ async function handleSave(): Promise<void> {
     );
     if (res.success) {
       hasSavedData.value = true;
-      isEditing.value = false;
+      editMode.value = 'readonly';
       stepStatus.value = 'in_progress';
       alert('保存成功');
     } else {
@@ -500,7 +536,7 @@ async function handleMarkComplete(): Promise<void> {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 03s;
   box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
 }
 
@@ -573,7 +609,7 @@ async function handleMarkComplete(): Promise<void> {
   box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
 }
 
-.gov-input:read-only {
+.gov-input-readonly {
   background: #f3f4f6;
   color: #6b7280;
   cursor: not-allowed;

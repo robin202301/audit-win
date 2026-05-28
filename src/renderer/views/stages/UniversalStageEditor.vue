@@ -10,7 +10,7 @@
       <div class="flex gap-2">
         <button class="btn-secondary" @click="handleUploadTemplate">上传模板</button>
         <button class="btn-secondary" @click="handleResetTemplate">重置为模板</button>
-        <button v-if="hasSavedData && !isEditing" class="btn-secondary gov-btn-edit" @click="handleEdit">修改</button>
+        <button v-if="hasSavedData && editMode === 'readonly'" class="btn-secondary gov-btn-edit" @click="handleEdit">修改</button>
         <button class="btn-primary" @click="handleSave">保存</button>
         <button class="btn-primary" @click="handleExport">导出文档</button>
       </div>
@@ -34,7 +34,9 @@
       v-model="content"
       class="input-base w-full font-mono text-sm leading-relaxed"
       rows="24"
-      placeholder="模板内容将在此显示，可编辑修改..." :readonly="hasSavedData && !isEditing"
+      placeholder="模板内容将在此显示，可编辑修改..."
+      :readonly="isReadonly"
+      :class="{ 'gov-input-readonly': isReadonly }"
     />
 
     <div v-if="saving" class="mt-3 text-blue-600">保存中...</div>
@@ -44,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 
 const props = defineProps<{
@@ -58,7 +60,8 @@ const saving = ref(false);
 const saveError = ref<string | null>(null);
 const saveSuccess = ref(false);
 const hasSavedData = ref(false);
-const isEditing = ref(false);
+const editMode = ref<"readonly" | "editing" | "new">("new");
+const isReadonly = computed(() => editMode.value === "readonly");
 const templateText = ref(''); // 原始模板文本
 
 onMounted(async () => {
@@ -143,6 +146,7 @@ async function loadSavedContent(): Promise<void> {
         if (parsed.content) {
           content.value = parsed.content;
           hasSavedData.value = true;
+          editMode.value = "readonly";
         }
       }
     }
@@ -165,7 +169,7 @@ async function handleSave(): Promise<void> {
     );
     if (res.success) {
       hasSavedData.value = true;
-      isEditing.value = false;
+      editMode.value = "readonly";
       saveSuccess.value = true;
       setTimeout(() => { saveSuccess.value = false; }, 2000);
     } else {
@@ -179,7 +183,11 @@ async function handleSave(): Promise<void> {
 }
 
 function handleEdit(): void {
-  isEditing.value = true;
+  editMode.value = "editing";
+  nextTick(() => {
+    const firstInput = document.querySelector(".gov-input:not([readonly])") as HTMLElement;
+    if (firstInput) firstInput.focus();
+  });
 }
 
 async function handleExport(): Promise<void> {
@@ -293,6 +301,13 @@ function getStepLabel(key: string): string {
   background: #fff7ed !important;
   border-color: #fdba74 !important;
   color: #c2410c !important;
+}
+
+.input-base[readonly], .gov-input-readonly {
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
 }
 
 .gov-btn-edit:hover {
