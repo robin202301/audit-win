@@ -35,7 +35,7 @@
     </div>
 
     <div class="gov-form-grid">
-      <div v-for="field in config.fields" :key="field.key" :class="field.fullSpan ? 'gov-span-2' : ''">
+      <div v-for="field in visibleFields" :key="field.key" :class="field.fullSpan ? 'gov-span-2' : ''">
         <label class="gov-field-label">{{ field.label }}</label>
         <textarea
           v-if="field.type === 'textarea'"
@@ -89,6 +89,12 @@ const activeTemplate = computed(() => {
     return NOTICE_TEMPLATES[props.projectInfo.auditType as keyof typeof NOTICE_TEMPLATES] || config.template;
   }
   return config.template;
+});
+
+// 根据审计类型过滤字段
+const visibleFields = computed(() => {
+  if (!props.projectInfo?.auditType) return config.fields;
+  return config.fields.filter(f => !f.auditTypes || f.auditTypes.includes(props.projectInfo!.auditType));
 });
 
 const formData = ref<Record<string, string>>({});
@@ -178,6 +184,8 @@ async function handleExport(): Promise<void> {
     const exportData = { ...formData.value };
     if (props.projectInfo) {
       if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
+      if (!exportData.auditProject) exportData.auditProject = props.projectInfo.name;
+      if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
     }
     if (!exportData.content) exportData.content = '';
     if (!exportData.text) exportData.text = '';

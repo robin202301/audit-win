@@ -6,6 +6,7 @@ export interface FormField {
   placeholder?: string;
   rows?: number;
   fullSpan?: boolean;  // 是否占满两列
+  auditTypes?: string[];  // 适用的审计类型（留空表示通用）
 }
 
 export interface StageFormConfig {
@@ -22,25 +23,29 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     title: '审计通知书',
     // template 根据审计类型动态设置（见 GenericStageForm.vue）
     exportFile: '审计通知书.docx',
-    autoFillFromProject: { auditedLeaderUnit: 'auditedTarget' },
+    autoFillFromProject: { auditedUnit: 'auditedTarget', auditedLeaderUnit: 'auditedTarget', auditProject: 'name' },
     defaultValues: {
       auditCommitteeOffice: '中共科右前旗审计委员会办公室',
       auditOrg: '科右前旗审计局',
       content: `审计"八不准"工作纪律`,
     },
     fields: [
-      { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室' },
+      { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室', auditTypes: ['经济责任审计'] },
       { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：科右前旗审计局' },
       { key: 'documentNumber', label: '文号', placeholder: '例：审（委）办经责通〔2024〕1号'},
-      { key: 'auditedLeaderName', label: '被审计领导干部姓名' },
-      { key: 'auditedLeaderPosition', label: '被审计领导干部职务' },
+      { key: 'auditedUnit', label: '被审计单位', fullSpan: true, placeholder: '例：科右前旗财政局' },
+      { key: 'auditedLeaderName', label: '被审计领导干部姓名', auditTypes: ['经济责任审计'] },
+      { key: 'auditedLeaderUnit', label: '被审计领导干部所在单位', fullSpan: true, auditTypes: ['经济责任审计'] },
+      { key: 'auditedLeaderPosition', label: '被审计领导干部职务', auditTypes: ['经济责任审计'] },
       { key: 'auditStartDate', label: '审计开始日期', type: 'date' },
+      { key: 'auditYear', label: '审计年度', placeholder: '例：2024', auditTypes: ['预算执行审计'] },
+      { key: 'auditProject', label: '审计项目名称', fullSpan: true, auditTypes: ['专项审计调查'] },
       { key: 'teamLeader', label: '审计组组长' },
       { key: 'teamDeputyLeader', label: '副组长' },
       { key: 'teamMembers', label: '审计组成员（逗号分隔）', fullSpan: true, placeholder: '请输入成员姓名，用逗号分隔' },
-      { key: 'text', label: '配合联系人/财务负责人', fullSpan: true, placeholder: '例：单位财务负责人或联络人姓名' },
+      { key: 'text', label: '配合联系人/财务负责人', fullSpan: true, placeholder: '例：单位财务负责人或联络人姓名', auditTypes: ['经济责任审计'] },
       { key: 'ccUnit', label: '抄送单位' },
-      { key: 'issuingOrg', label: '印发机关', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室 科右前旗审计局' },
+      { key: 'issuingOrg', label: '印发机关', fullSpan: true, placeholder: '例：科右前旗审计局' },
       { key: 'issueDate', label: '印发日期', type: 'date' },
       { key: 'content', label: '附件', type: 'textarea', rows: 4, fullSpan: true, placeholder: '通知书附件内容，留空则不显示' },
     ],
