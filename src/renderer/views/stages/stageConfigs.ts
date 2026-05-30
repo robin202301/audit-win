@@ -75,12 +75,15 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   audit_announcement: {
     title: '经济责任审计公示',
+    template: '4经济责任审计公示',
     exportFile: '经济责任审计公示.docx',
-    autoFillFromProject: { projectName: 'name', auditedLeaderName: 'auditedTarget' },
+    autoFillFromProject: { projectName: 'name', auditedLeaderUnit: 'auditedTarget' },
     fields: [
       { key: 'projectName', label: '审计项目名称', fullSpan: true },
+      { key: 'auditedLeaderUnit', label: '被审计领导干部所在单位' },
       { key: 'auditedLeaderName', label: '被审计领导干部姓名' },
       { key: 'auditedLeaderPosition', label: '被审计领导干部职务' },
+      { key: 'auditStartDate', label: '审计开始日期', type: 'date' },
       { key: 'auditPeriod', label: '审计期间', placeholder: '例：2023年1月至2024年12月' },
       { key: 'announcementStartDate', label: '公示开始日期', type: 'date' },
       { key: 'announcementEndDate', label: '公示结束日期', type: 'date' },

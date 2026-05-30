@@ -17,10 +17,17 @@ export class EvidencePaperLinkRepo {
     );
   }
 
-  async getPaperByEvidence(evidenceId: number): Promise<EvidencePaperLink | undefined> {
-    return this.db.get<EvidencePaperLink>(
-      'SELECT * FROM evidence_working_paper_links WHERE evidence_id = ?',
+  async getPapersByEvidence(evidenceId: number): Promise<EvidencePaperLink[]> {
+    return this.db.all<EvidencePaperLink[]>(
+      'SELECT * FROM evidence_working_paper_links WHERE evidence_id = ? ORDER BY id',
       evidenceId
+    );
+  }
+
+  async getByWorkingPaper(workingPaperId: number): Promise<EvidencePaperLink | undefined> {
+    return this.db.get<EvidencePaperLink>(
+      'SELECT * FROM evidence_working_paper_links WHERE working_paper_id = ?',
+      workingPaperId
     );
   }
 

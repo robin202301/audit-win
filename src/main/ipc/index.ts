@@ -223,7 +223,16 @@ export async function setupIpcHandlers(): Promise<void> {
 
   ipcMain.handle('evidence-paper-links:get-by-evidence', async (_e, evidenceId: number) => {
     try {
-      const link = await paperLinkRepo.getPaperByEvidence(evidenceId);
+      const link = await paperLinkRepo.getPapersByEvidence(evidenceId);
+      return { success: true, data: link };
+    } catch (error: unknown) {
+      return { success: false, message: `获取关联关系失败：${(error as Error).message}` };
+    }
+  });
+
+  ipcMain.handle('evidence-paper-links:get-by-paper', async (_e, workingPaperId: number) => {
+    try {
+      const link = await paperLinkRepo.getByWorkingPaper(workingPaperId);
       return { success: true, data: link };
     } catch (error: unknown) {
       return { success: false, message: `获取关联关系失败：${(error as Error).message}` };

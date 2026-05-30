@@ -62,6 +62,8 @@ const api = {
       ipcRenderer.invoke('evidence-paper-links:get-by-project-id', projectId),
     getByEvidence: (evidenceId: number): Promise<IPCResponse> =>
       ipcRenderer.invoke('evidence-paper-links:get-by-evidence', evidenceId),
+    getByPaper: (workingPaperId: number): Promise<IPCResponse> =>
+      ipcRenderer.invoke('evidence-paper-links:get-by-paper', workingPaperId),
     create: (data: { projectId: number; evidenceId: number; workingPaperId: number }): Promise<IPCResponse> =>
       ipcRenderer.invoke('evidence-paper-links:create', data),
   },

@@ -174,6 +174,26 @@ export async function runMigrations(db: Database): Promise<void> {
     END;
   `);
 
+  // 迁移：解除取证单与底稿的 1:1 约束，改为 1:N
+  try {
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS evidence_working_paper_links_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        evidence_id INTEGER NOT NULL,
+        working_paper_id INTEGER NOT NULL,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (working_paper_id) REFERENCES working_papers(id) ON DELETE CASCADE
+      );
+    `);
+    await db.exec(`INSERT OR IGNORE INTO evidence_working_paper_links_new SELECT * FROM evidence_working_paper_links`);
+    await db.exec(`DROP TABLE IF EXISTS evidence_working_paper_links`);
+    await db.exec(`ALTER TABLE evidence_working_paper_links_new RENAME TO evidence_working_paper_links`);
+  } catch {
+    // 已迁移或表不存在，忽略
+  }
+
   // 自动更新 updated_at
   await db.exec(`
     CREATE TRIGGER IF NOT EXISTS update_project_timestamp

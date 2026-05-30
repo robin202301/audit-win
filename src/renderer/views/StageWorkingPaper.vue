@@ -22,20 +22,19 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in evidenceList" :key="item.id" v-memo="[item.serialNumber, item.matterSummary, hasLinkedPaper(item.id)]" class="border-b hover:bg-gray-50">
+          <tr v-for="item in evidenceList" :key="item.id" v-memo="[item.serialNumber, item.matterSummary, getLinkedPaperCount(item.id)]" class="border-b hover:bg-gray-50">
             <td class="py-2 px-3">{{ item.serialNumber }}</td>
             <td class="py-2 px-3 max-w-xs truncate">{{ item.matterSummary }}</td>
             <td class="py-2 px-3">{{ item.auditorName }}</td>
             <td class="py-2 px-3">
-              <span v-if="hasLinkedPaper(item.id)" class="text-green-600 font-medium">已生成底稿</span>
+              <span v-if="getLinkedPaperCount(item.id) > 0" class="text-green-600 font-medium">
+                已生成 {{ getLinkedPaperCount(item.id) }} 条底稿
+              </span>
               <span v-else class="text-gray-400">未生成</span>
             </td>
             <td class="py-2 px-3">
-              <button v-if="!hasLinkedPaper(item.id)" class="btn-primary text-xs" @click="generateFromEvidence(item)">
+              <button class="btn-primary text-xs" @click="generateFromEvidence(item)">
                 生成底稿
-              </button>
-              <button v-else class="text-blue-600 hover:text-blue-800 text-xs" @click="editLinkedPaper(item)">
-                编辑底稿
               </button>
             </td>
           </tr>
@@ -56,6 +55,7 @@
         <thead class="bg-gray-50 border-b">
           <tr>
             <th class="text-left py-2 px-3">索引号</th>
+            <th class="text-left py-2 px-3">来源取证单</th>
             <th class="text-left py-2 px-3">审计事项</th>
             <th class="text-left py-2 px-3">审计人员</th>
             <th class="text-left py-2 px-3">编制日期</th>
@@ -64,8 +64,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in paperList" :key="item.id" v-memo="[item.indexNumber, item.auditMatter, item.auditorName, item.compileDate, item.reviewerOpinion]" class="border-b hover:bg-gray-50">
+          <tr v-for="item in paperList" :key="item.id" v-memo="[item.indexNumber, getSourceSerial(item.id), item.auditMatter, item.auditorName, item.compileDate, item.reviewerOpinion]" class="border-b hover:bg-gray-50">
             <td class="py-2 px-3">{{ item.indexNumber }}</td>
+            <td class="py-2 px-3">{{ getSourceSerial(item.id) || '—' }}</td>
             <td class="py-2 px-3 max-w-xs truncate">{{ item.auditMatter }}</td>
             <td class="py-2 px-3">{{ item.auditorName }}</td>
             <td class="py-2 px-3">{{ item.compileDate }}</td>
@@ -239,13 +240,15 @@ function resetForm(): void {
   sourceEvidenceId.value = null;
 }
 
-function hasLinkedPaper(evidenceId: number): boolean {
-  return linkList.value.some(link => link.evidenceId === evidenceId);
+function getLinkedPaperCount(evidenceId: number): number {
+  return linkList.value.filter(link => link.evidenceId === evidenceId).length;
 }
 
-function getLinkedPaperId(evidenceId: number): number | null {
-  const link = linkList.value.find(l => l.evidenceId === evidenceId);
-  return link ? link.workingPaperId : null;
+function getSourceSerial(paperId: number): string | null {
+  const link = linkList.value.find(l => l.workingPaperId === paperId);
+  if (!link) return null;
+  const evidence = evidenceList.value.find(e => e.id === link.evidenceId);
+  return evidence ? evidence.serialNumber : null;
 }
 
 onMounted(() => {
@@ -291,7 +294,7 @@ async function loadLinks(): Promise<void> {
   }
 }
 
-/** 从取证单生成底稿 */
+/** 从取证单生成底稿 — 始终创建新底稿 */
 function generateFromEvidence(evidence: EvidenceRow): void {
   resetForm();
   formData.value.projectName = evidence.projectName || props.projectInfo?.name || '';
@@ -301,14 +304,6 @@ function generateFromEvidence(evidence: EvidenceRow): void {
   sourceEvidenceId.value = evidence.id;
   editingId.value = null;
   showForm.value = true;
-}
-
-/** 编辑已关联的底稿 */
-function editLinkedPaper(evidence: EvidenceRow): void {
-  const paperId = getLinkedPaperId(evidence.id);
-  if (!paperId) return;
-  const paper = paperList.value.find(p => p.id === paperId);
-  if (paper) editPaper(paper);
 }
 
 function openForm(): void {
@@ -347,12 +342,14 @@ async function handleSaveForm(): Promise<void> {
   try {
     const data = { projectId: props.projectId, ...formData.value };
     if (editingId.value) {
+      // 编辑已有底稿
       const res = await window.electronAPI.workingPapers.update(editingId.value, data);
       if (res.success) {
         closeForm();
         await loadPapers();
       }
     } else {
+      // 新增底稿
       const res = await window.electronAPI.workingPapers.create(data);
       if (res.success) {
         // 如果是从取证单生成，建立关联
@@ -376,12 +373,8 @@ async function handleSaveForm(): Promise<void> {
 async function deletePaper(id: number): Promise<void> {
   if (confirm('确定要删除该底稿吗？')) {
     await window.electronAPI.workingPapers.delete(id);
-    // 删除关联记录
-    const link = linkList.value.find(l => l.workingPaperId === id);
-    if (link) {
-      // 简单处理：删除底稿时不删除关联，后续可优化
-    }
     await loadPapers();
+    await loadLinks();
   }
 }
 
@@ -401,3 +394,4 @@ async function exportPaper(item: PaperRow): Promise<void> {
   }
 }
 </script>
+VUEOF
