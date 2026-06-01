@@ -1,80 +1,41 @@
 <template>
   <div>
-    <!-- 取证单列表（数据源） -->
-    <div class="card mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold">前序取证单（数据源）</h2>
-        <span class="text-sm text-gray-500">{{ evidenceList.length }} 条取证单</span>
-      </div>
-
-      <div v-if="loadingEvidence" class="text-center py-4 text-gray-500">加载中...</div>
-      <div v-else-if="evidenceList.length === 0" class="text-center py-4 text-gray-400">
-        暂无取证单，请先在"审计取证单"步骤中添加
-      </div>
-      <table v-else class="w-full text-sm">
-        <thead class="bg-gray-50 border-b">
-          <tr>
-            <th class="text-left py-2 px-3">编号</th>
-            <th class="text-left py-2 px-3">事项摘要</th>
-            <th class="text-left py-2 px-3">审计人员</th>
-            <th class="text-left py-2 px-3">底稿状态</th>
-            <th class="text-left py-2 px-3">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in evidenceList" :key="item.id" v-memo="[item.serialNumber, item.matterSummary, getLinkedPaperCount(item.id)]" class="border-b hover:bg-gray-50">
-            <td class="py-2 px-3">{{ item.serialNumber }}</td>
-            <td class="py-2 px-3 max-w-xs truncate">{{ item.matterSummary }}</td>
-            <td class="py-2 px-3">{{ item.auditorName }}</td>
-            <td class="py-2 px-3">
-              <span v-if="getLinkedPaperCount(item.id) > 0" class="text-green-600 font-medium">
-                已生成 {{ getLinkedPaperCount(item.id) }} 条底稿
-              </span>
-              <span v-else class="text-gray-400">未生成</span>
-            </td>
-            <td class="py-2 px-3">
-              <button class="btn-primary text-xs" @click="generateFromEvidence(item)">
-                生成底稿
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
     <!-- 底稿列表 -->
-    <div class="card mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold">审计底稿管理</h2>
-        <button class="btn-primary" @click="openForm">手动新增底稿</button>
+    <div class="card gov-stage-card">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <span class="gov-step-badge">11</span>
+          <h2 class="gov-step-title">审计工作底稿</h2>
+        </div>
+        <button class="gov-btn-primary" @click="openForm">新增底稿</button>
       </div>
 
       <div v-if="loading" class="text-center py-4 text-gray-500">加载中...</div>
-      <div v-else-if="paperList.length === 0" class="text-center py-4 text-gray-400">暂无底稿</div>
-      <table v-else class="w-full text-sm">
-        <thead class="bg-gray-50 border-b">
+      <div v-else-if="paperList.length === 0" class="text-center py-8 text-gray-400">暂无底稿，请从取证单生成或手动新增</div>
+      <table v-else class="gov-table">
+        <thead>
           <tr>
-            <th class="text-left py-2 px-3">索引号</th>
-            <th class="text-left py-2 px-3">来源取证单</th>
-            <th class="text-left py-2 px-3">审计事项</th>
-            <th class="text-left py-2 px-3">审计人员</th>
-            <th class="text-left py-2 px-3">编制日期</th>
-            <th class="text-left py-2 px-3">审核意见</th>
-            <th class="text-left py-2 px-3">操作</th>
+            <th class="text-left">索引号</th>
+            <th class="text-left">审计事项</th>
+            <th class="text-left">审计人员</th>
+            <th class="text-left">编制日期</th>
+            <th class="text-left">审核意见</th>
+            <th class="text-left">操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in paperList" :key="item.id" v-memo="[item.indexNumber, getSourceSerial(item.id), item.auditMatter, item.auditorName, item.compileDate, item.reviewerOpinion]" class="border-b hover:bg-gray-50">
-            <td class="py-2 px-3">{{ item.indexNumber }}</td>
-            <td class="py-2 px-3">{{ getSourceSerial(item.id) || '—' }}</td>
-            <td class="py-2 px-3 max-w-xs truncate">{{ item.auditMatter }}</td>
-            <td class="py-2 px-3">{{ item.auditorName }}</td>
-            <td class="py-2 px-3">{{ item.compileDate }}</td>
-            <td class="py-2 px-3">{{ item.reviewerOpinion || '待审核' }}</td>
-            <td class="py-2 px-3 flex gap-2">
-              <button class="text-blue-600 hover:text-blue-800" @click="editPaper(item)">编辑</button>
-              <button class="text-blue-600 hover:text-blue-800" @click="exportPaper(item)">导出</button>
-              <button class="text-red-600 hover:text-red-800" @click="deletePaper(item.id)">删除</button>
+          <tr v-for="item in paperList" :key="item.id" class="border-b hover:bg-gray-50">
+            <td class="gov-td">{{ item.indexNumber }}</td>
+            <td class="gov-td max-w-xs truncate">{{ item.auditMatter }}</td>
+            <td class="gov-td">{{ item.auditorName }}</td>
+            <td class="gov-td">{{ item.compileDate }}</td>
+            <td class="gov-td">{{ item.reviewerOpinion || '待审核' }}</td>
+            <td class="gov-td">
+              <div class="flex gap-2">
+                <button class="gov-btn-link gov-btn-link-edit" @click="editPaper(item)">编辑</button>
+                <button class="gov-btn-link gov-btn-link-export" @click="exportPaper(item)">导出</button>
+                <button class="gov-btn-link gov-btn-link-delete" @click="deletePaper(item.id)">删除</button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -87,48 +48,48 @@
         <h3 class="text-lg font-bold mb-4">{{ formTitle }}</h3>
         <div class="grid gap-4 md:grid-cols-2">
           <div>
-            <label class="label-base">索引号</label>
-            <input v-model="formData.indexNumber" class="input-base" placeholder="请输入索引号" />
+            <label class="gov-field-label">索引号</label>
+            <input v-model="formData.indexNumber" class="gov-input gov-input-editable" placeholder="请输入索引号" />
           </div>
           <div>
-            <label class="label-base">项目名称</label>
-            <input v-model="formData.projectName" class="input-base" placeholder="请输入项目名称" />
+            <label class="gov-field-label">项目名称</label>
+            <input v-model="formData.projectName" class="gov-input gov-input-editable" placeholder="请输入项目名称" />
           </div>
           <div class="md:col-span-2">
-            <label class="label-base">审计（调查）事项</label>
-            <textarea v-model="formData.auditMatter" class="input-base" rows="2" placeholder="请输入审计事项" />
+            <label class="gov-field-label">审计（调查）事项</label>
+            <textarea v-model="formData.auditMatter" class="gov-input gov-input-editable" rows="2" placeholder="请输入审计事项" />
           </div>
           <div>
-            <label class="label-base">审计人员</label>
-            <input v-model="formData.auditorName" class="input-base" placeholder="请输入审计人员" />
+            <label class="gov-field-label">审计人员</label>
+            <input v-model="formData.auditorName" class="gov-input gov-input-editable" placeholder="请输入审计人员" />
           </div>
           <div>
-            <label class="label-base">编制日期</label>
-            <input v-model="formData.compileDate" type="date" class="input-base" />
+            <label class="gov-field-label">编制日期</label>
+            <input v-model="formData.compileDate" type="date" class="gov-input gov-input-editable" />
           </div>
           <div class="md:col-span-2">
-            <label class="label-base">审计过程</label>
-            <textarea v-model="formData.auditProcess" class="input-base" rows="4" placeholder="说明实施审计的主要步骤和方法、所取得的审计证据"></textarea>
+            <label class="gov-field-label">审计过程</label>
+            <textarea v-model="formData.auditProcess" class="gov-input gov-input-editable" rows="4" placeholder="说明实施审计的主要步骤和方法、所取得的审计证据" />
           </div>
           <div class="md:col-span-2">
-            <label class="label-base">审计认定的事实摘要</label>
-            <textarea v-model="formData.factSummary" class="input-base" rows="3" placeholder="请输入审计认定的事实摘要"></textarea>
+            <label class="gov-field-label">审计认定的事实摘要</label>
+            <textarea v-model="formData.factSummary" class="gov-input gov-input-editable" rows="3" placeholder="请输入审计认定的事实摘要" />
           </div>
           <div class="md:col-span-2">
-            <label class="label-base">审计结论</label>
-            <textarea v-model="formData.auditConclusion" class="input-base" rows="3" placeholder="请输入审计结论"></textarea>
+            <label class="gov-field-label">审计结论</label>
+            <textarea v-model="formData.auditConclusion" class="gov-input gov-input-editable" rows="3" placeholder="请输入审计结论" />
           </div>
           <div>
-            <label class="label-base">审核人员</label>
-            <input v-model="formData.reviewerName" class="input-base" placeholder="请输入审核人员" />
+            <label class="gov-field-label">审核人员</label>
+            <input v-model="formData.reviewerName" class="gov-input gov-input-editable" placeholder="请输入审核人员" />
           </div>
           <div>
-            <label class="label-base">审核日期</label>
-            <input v-model="formData.reviewDate" type="date" class="input-base" />
+            <label class="gov-field-label">审核日期</label>
+            <input v-model="formData.reviewDate" type="date" class="gov-input gov-input-editable" />
           </div>
           <div class="md:col-span-2">
-            <label class="label-base">审核意见</label>
-            <select v-model="formData.reviewerOpinion" class="input-base">
+            <label class="gov-field-label">审核意见</label>
+            <select v-model="formData.reviewerOpinion" class="gov-input gov-input-editable">
               <option value="">请选择审核意见</option>
               <option value="予以认可">予以认可</option>
               <option value="责成采取进一步审计措施">责成采取进一步审计措施，获取适当、充分的审计证据</option>
@@ -136,8 +97,8 @@
             </select>
           </div>
           <div>
-            <label class="label-base">附件页数</label>
-            <input v-model.number="formData.attachmentCount" type="number" class="input-base" placeholder="请输入附件页数" />
+            <label class="gov-field-label">附件页数</label>
+            <input v-model.number="formData.attachmentCount" type="number" class="gov-input gov-input-editable" placeholder="请输入附件页数" />
           </div>
         </div>
         <div class="flex justify-end gap-3 mt-6">
@@ -151,24 +112,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { AuditStage } from '@shared/types';
+import { useRoute } from 'vue-router';
 
-const props = defineProps<{ projectId: number; stage: AuditStage; projectInfo?: { name: string; auditedTarget: string; auditType: string } }>();
+const props = defineProps<{ projectId: number; projectInfo?: { name: string; auditedTarget: string; auditType: string } }>();
 
-interface EvidenceRow {
-  id: number;
-  serialNumber: string;
-  projectName: string;
-  auditedUnit: string;
-  matterSummary: string;
-  evidenceContent: string;
-  legalBasis: string;
-  auditorName: string;
-  compileDate: string;
-  providerOpinion: string;
-  providerSignature: string;
-  feedbackDeadline: string;
-}
+const route = useRoute();
 
 interface PaperRow {
   id: number;
@@ -186,21 +134,10 @@ interface PaperRow {
   attachmentCount: number;
 }
 
-interface LinkRow {
-  id: number;
-  projectId: number;
-  evidenceId: number;
-  workingPaperId: number;
-}
-
-const evidenceList = ref<EvidenceRow[]>([]);
 const paperList = ref<PaperRow[]>([]);
-const linkList = ref<LinkRow[]>([]);
 const loading = ref(false);
-const loadingEvidence = ref(false);
 const showForm = ref(false);
 const editingId = ref<number | null>(null);
-const sourceEvidenceId = ref<number | null>(null);
 
 const formData = ref({
   indexNumber: '',
@@ -218,7 +155,6 @@ const formData = ref({
 });
 
 const formTitle = computed(() => {
-  if (sourceEvidenceId.value) return '从取证单生成底稿';
   return editingId.value ? '编辑底稿' : '新增底稿';
 });
 
@@ -237,39 +173,23 @@ function resetForm(): void {
     reviewDate: '',
     attachmentCount: 0,
   };
-  sourceEvidenceId.value = null;
 }
 
-function getLinkedPaperCount(evidenceId: number): number {
-  return linkList.value.filter(link => link.evidenceId === evidenceId).length;
-}
+onMounted(async () => {
+  await loadPapers();
 
-function getSourceSerial(paperId: number): string | null {
-  const link = linkList.value.find(l => l.workingPaperId === paperId);
-  if (!link) return null;
-  const evidence = evidenceList.value.find(e => e.id === link.evidenceId);
-  return evidence ? evidence.serialNumber : null;
-}
-
-onMounted(() => {
-  loadAll();
-});
-
-async function loadAll(): Promise<void> {
-  await Promise.all([loadEvidence(), loadPapers(), loadLinks()]);
-}
-
-async function loadEvidence(): Promise<void> {
-  loadingEvidence.value = true;
-  try {
-    const res = await window.electronAPI.evidence.getByProjectId(props.projectId);
-    if (res.success && res.data) {
-      evidenceList.value = res.data;
+  // 检查是否从取证单跳转而来（带预填数据）
+  if (route.query.fromEvidence === '1') {
+    resetForm();
+    if (route.query.matterContent) {
+      formData.value.auditMatter = String(route.query.matterContent);
     }
-  } finally {
-    loadingEvidence.value = false;
+    if (route.query.matterIndex) {
+      formData.value.indexNumber = String(route.query.matterIndex);
+    }
+    showForm.value = true;
   }
-}
+});
 
 async function loadPapers(): Promise<void> {
   loading.value = true;
@@ -283,29 +203,6 @@ async function loadPapers(): Promise<void> {
   }
 }
 
-async function loadLinks(): Promise<void> {
-  try {
-    const res = await window.electronAPI.evidencePaperLinks.getByProjectId(props.projectId);
-    if (res.success && res.data) {
-      linkList.value = res.data;
-    }
-  } catch {
-    // ignore
-  }
-}
-
-/** 从取证单生成底稿 — 始终创建新底稿 */
-function generateFromEvidence(evidence: EvidenceRow): void {
-  resetForm();
-  formData.value.projectName = evidence.projectName || props.projectInfo?.name || '';
-  formData.value.auditMatter = evidence.matterSummary;
-  formData.value.auditorName = evidence.auditorName;
-  formData.value.compileDate = evidence.compileDate;
-  sourceEvidenceId.value = evidence.id;
-  editingId.value = null;
-  showForm.value = true;
-}
-
 function openForm(): void {
   resetForm();
   editingId.value = null;
@@ -315,7 +212,6 @@ function openForm(): void {
 function closeForm(): void {
   showForm.value = false;
   editingId.value = null;
-  sourceEvidenceId.value = null;
 }
 
 function editPaper(item: PaperRow): void {
@@ -334,7 +230,6 @@ function editPaper(item: PaperRow): void {
     reviewDate: item.reviewDate,
     attachmentCount: item.attachmentCount,
   };
-  sourceEvidenceId.value = null;
   showForm.value = true;
 }
 
@@ -342,24 +237,22 @@ async function handleSaveForm(): Promise<void> {
   try {
     const data = { projectId: props.projectId, ...formData.value };
     if (editingId.value) {
-      // 编辑已有底稿
       const res = await window.electronAPI.workingPapers.update(editingId.value, data);
       if (res.success) {
         closeForm();
         await loadPapers();
       }
     } else {
-      // 新增底稿
       const res = await window.electronAPI.workingPapers.create(data);
       if (res.success) {
-        // 如果是从取证单生成，建立关联
-        if (sourceEvidenceId.value && res.data?.id) {
+        // 如果从取证单跳转，建立关联
+        const evidenceId = route.query.evidenceId ? Number(route.query.evidenceId) : null;
+        if (evidenceId && res.data?.id) {
           await window.electronAPI.evidencePaperLinks.create({
             projectId: props.projectId,
-            evidenceId: sourceEvidenceId.value,
+            evidenceId,
             workingPaperId: res.data.id,
           });
-          await loadLinks();
         }
         closeForm();
         await loadPapers();
@@ -374,7 +267,6 @@ async function deletePaper(id: number): Promise<void> {
   if (confirm('确定要删除该底稿吗？')) {
     await window.electronAPI.workingPapers.delete(id);
     await loadPapers();
-    await loadLinks();
   }
 }
 
@@ -382,7 +274,7 @@ async function exportPaper(item: PaperRow): Promise<void> {
   try {
     const res = await window.electronAPI.documents.openSaveDialog(`审计底稿_${item.indexNumber}.docx`);
     if (res.success && res.data) {
-      const genRes = await window.electronAPI.documents.generate('tpl_working_paper', { ...item }, res.data.filePath);
+      const genRes = await window.electronAPI.documents.generate('12审计工作底稿', { ...item }, res.data.filePath);
       if (genRes.success) {
         alert('文档已导出：' + res.data!.filePath);
       } else {
@@ -394,4 +286,150 @@ async function exportPaper(item: PaperRow): Promise<void> {
   }
 }
 </script>
-VUEOF
+
+<style scoped>
+.gov-stage-card {
+  background: linear-gradient(135deg, #fff 0%, #fffaf5 100%);
+  border: 1px solid #e8d5b7;
+  border-left: 4px solid #8B0000;
+  border-radius: 8px;
+}
+
+.gov-step-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8B0000, #B22222);
+  color: #FFD700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
+}
+
+.gov-step-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.gov-btn-primary {
+  padding: 6px 16px;
+  background: linear-gradient(135deg, #8B0000, #B22222);
+  color: #FFD700;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
+}
+
+.gov-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #a00000, #c42828);
+  transform: translateY(-1px);
+}
+
+.gov-table {
+  width: 100%;
+  font-size: 14px;
+}
+
+.gov-table thead {
+  background: #fef3c7;
+  border-bottom: 2px solid #e8d5b7;
+}
+
+.gov-table thead th {
+  padding: 10px 12px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 13px;
+}
+
+.gov-table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.gov-table tbody tr:hover {
+  background: #fffaf5;
+}
+
+.gov-td {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.gov-btn-link {
+  background: none;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.gov-btn-link-edit {
+  color: #2563eb;
+}
+
+.gov-btn-link-edit:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.gov-btn-link-export {
+  color: #059669;
+}
+
+.gov-btn-link-export:hover {
+  color: #047857;
+  text-decoration: underline;
+}
+
+.gov-btn-link-delete {
+  color: #dc2626;
+}
+
+.gov-btn-link-delete:hover {
+  color: #b91c1c;
+  text-decoration: underline;
+}
+
+.gov-field-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.gov-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f2937;
+  background: #faf8f5;
+  font-family: inherit;
+  line-height: 1.6;
+  box-sizing: border-box;
+  word-break: break-all;
+  white-space: pre-wrap;
+  min-height: 36px;
+}
+
+.gov-input-editable {
+  transition: border-color 0.2s;
+}
+
+.gov-input-editable:focus {
+  outline: none;
+  border-color: #8B0000;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+</style>

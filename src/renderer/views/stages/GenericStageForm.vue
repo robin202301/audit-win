@@ -8,17 +8,17 @@
         <h2 class="gov-step-title">{{ config.title }}</h2>
       </div>
       <div class="flex gap-2">
-        <button v-if="step.importFrom && step.importFrom.length > 0" class="gov-btn-secondary" @click="handleImport">
+        <button v-if="config.fields.length > 0 && step.importFrom && step.importFrom.length > 0" class="gov-btn-secondary" @click="handleImport">
           导入前序数据
         </button>
-        <button v-if="hasSavedData && !isEditing" class="gov-btn-edit" @click="doEdit">修改</button>
-        <button v-if="isEditing" class="gov-btn-primary" @click="handleSave">
+        <button v-if="config.fields.length > 0 && hasSavedData && !isEditing" class="gov-btn-edit" @click="doEdit">修改</button>
+        <button v-if="config.fields.length > 0 && isEditing" class="gov-btn-primary" @click="handleSave">
           <svg v-if="saving" class="w-3 h-3 mr-1 animate-spin" viewBox="0 0 16 16" fill="currentColor">
             <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" fill="none" stroke-dasharray="20 12"/>
           </svg>
           {{ saving ? '保存中...' : '保存' }}
         </button>
-        <button v-if="hasSavedData && stepStatus !== 'completed' && !isEditing" class="gov-btn-complete" @click="handleMarkComplete">
+        <button v-if="config.fields.length > 0 && hasSavedData && stepStatus !== 'completed' && !isEditing" class="gov-btn-complete" @click="handleMarkComplete">
           标记完成
         </button>
         <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
@@ -27,15 +27,23 @@
     </div>
 
     <!-- 数据引用提示 -->
-    <div v-if="step.importFrom && step.importFrom.length > 0" class="gov-import-hint">
+    <div v-if="config.fields.length > 0 && step.importFrom && step.importFrom.length > 0" class="gov-import-hint">
       <span class="font-medium">数据来源：</span>
       <span v-for="srcKey in step.importFrom" :key="srcKey">
         {{ getStepLabel(srcKey) }}
       </span>
     </div>
 
+    <!-- 纯导出页面提示 -->
+    <div v-if="config.fields.length === 0" class="gov-export-hint">
+      <svg class="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+      </svg>
+      <span>当前页面无需输入，请直接点击上方「导出文档」按钮导出模板。</span>
+    </div>
+
     <!-- 编辑态：表单输入 -->
-    <div v-if="isEditing" :key="'edit-' + editKey" class="gov-form-grid">
+    <div v-if="config.fields.length > 0 && isEditing" :key="'edit-' + editKey" class="gov-form-grid">
       <div v-for="field in visibleFields" :key="field.key" :class="field.fullSpan ? 'gov-span-2' : ''">
         <label class="gov-field-label">{{ field.label }}</label>
         <textarea
@@ -63,7 +71,7 @@
     </div>
 
     <!-- 只读态：纯文本展示 -->
-    <div v-else :key="'view-' + editKey" class="gov-form-grid">
+    <div v-else-if="config.fields.length > 0" :key="'view-' + editKey" class="gov-form-grid">
       <div v-for="field in visibleFields" :key="field.key" :class="field.fullSpan ? 'gov-span-2' : ''">
         <label class="gov-field-label">{{ field.label }}</label>
         <div class="gov-input gov-input-display">
@@ -565,6 +573,20 @@ async function handleMarkComplete(): Promise<void> {
   border-radius: 6px;
   font-size: 13px;
   color: #92400e;
+}
+
+.gov-export-hint {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .gov-form-grid {
