@@ -60,7 +60,7 @@
               <td><input v-model="entry.documentNumber" class="tbl-input" /></td>
               <td><input v-model="entry.responsible" class="tbl-input" /></td>
               <td><input v-model="entry.title" class="tbl-input" /></td>
-              <td><input v-model="entry.date" class="tbl-input" type="text" placeholder="YYYYMMDD" /></td>
+              <td><input v-model="entry.date" class="tbl-input" type="text" placeholder="如：2026年1月1日" /></td>
               <td><input v-model="entry.pageNumber" class="tbl-input" /></td>
               <td><input v-model="entry.classification" class="tbl-input" /></td>
               <td class="col-action">

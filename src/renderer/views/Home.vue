@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-7xl mx-auto px-4 py-8">
     <!-- 页面标题栏 -->
-    <div class="gov-page-header mb-6">
+    <div v-once class="gov-page-header mb-6">
       <div class="gov-header-row">
         <div>
           <h2 class="gov-page-title">审计项目列表</h2>
@@ -42,6 +42,7 @@
       <div
         v-for="project in visibleProjects"
         :key="project.id"
+        v-memo="[project.id, project.status, project.name, project.auditedTarget, project.auditType, project.createdAt]"
         class="gov-project-card"
         @click="openProject(project.id)"
       >

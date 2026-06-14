@@ -14,7 +14,7 @@ function createWindow(): void {
     height: 900,
     minWidth: 1024,
     minHeight: 768,
-    title: '审计管理系统',
+    title: '基层审计机关审计辅助系统 v0.1',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,

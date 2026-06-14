@@ -157,6 +157,7 @@ export async function runMigrations(db: Database): Promise<void> {
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'interview_record', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'evidence', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'working_paper', 'not_started');
+      INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'working_paper_summary', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'task_list_completion', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'report', 'not_started');
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'report_consultation', 'not_started');

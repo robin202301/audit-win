@@ -37,11 +37,21 @@ declare global {
         getByEntity: (entityType: string, entityId: number) => Promise<IPCResponse>;
         delete: (id: number) => Promise<IPCResponse>;
       };
+      evidencePaperLinks: {
+        getByProjectId: (projectId: number) => Promise<IPCResponse>;
+        getByEvidence: (evidenceId: number) => Promise<IPCResponse>;
+        getByPaper: (workingPaperId: number) => Promise<IPCResponse>;
+        create: (data: { projectId: number; evidenceId: number; workingPaperId: number }) => Promise<IPCResponse>;
+      };
       documents: {
         generate: (templateName: string, data: Record<string, unknown>, outputPath: string) => Promise<IPCResponse>;
         openSaveDialog: (defaultName: string) => Promise<IPCResponse<{ filePath: string }>>;
         generateExcel: (templateName: string, data: Record<string, unknown>, outputPath: string) => Promise<IPCResponse>;
         parseWord: (arrayBuffer: ArrayBuffer) => Promise<IPCResponse>;
+      };
+      templates: {
+        readTemplateText: (templateName: string) => Promise<IPCResponse<{ text: string }>>;
+        validate: (templateName: string, data: Record<string, unknown>) => Promise<IPCResponse<{ missing: string[]; all: string[] }>>;
       };
     };
   }

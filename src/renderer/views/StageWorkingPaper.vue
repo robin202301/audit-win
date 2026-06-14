@@ -181,6 +181,9 @@ onMounted(async () => {
   // 检查是否从取证单跳转而来（带预填数据）
   if (route.query.fromEvidence === '1') {
     resetForm();
+    if (route.query.projectName) {
+      formData.value.projectName = String(route.query.projectName);
+    }
     if (route.query.matterContent) {
       formData.value.auditMatter = String(route.query.matterContent);
     }
@@ -274,7 +277,7 @@ async function exportPaper(item: PaperRow): Promise<void> {
   try {
     const res = await window.electronAPI.documents.openSaveDialog(`审计底稿_${item.indexNumber}.docx`);
     if (res.success && res.data) {
-      const genRes = await window.electronAPI.documents.generate('12审计工作底稿', { ...item }, res.data.filePath);
+      const genRes = await window.electronAPI.documents.generate('16审计工作底稿', { ...item }, res.data.filePath);
       if (genRes.success) {
         alert('文档已导出：' + res.data!.filePath);
       } else {

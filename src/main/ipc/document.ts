@@ -1,7 +1,6 @@
 import { ipcMain, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
-// @ts-ignore - mammoth 类型声明待安装
 import mammoth from 'mammoth';
 import { generateDocument, generateExcel } from '../services/templateService';
 

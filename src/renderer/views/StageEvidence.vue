@@ -251,7 +251,7 @@ async function loadPaperStatus(): Promise<void> {
     if (res.success && res.data) {
       const status: Record<number, boolean> = {};
       for (let i = 0; i < matters.value.length; i++) {
-        status[i] = (res.data as any[]).length > i;
+        status[i] = (res.data as Array<{ evidenceId: number; workingPaperId: number }>).length > i;
       }
       paperStatus.value = status;
     }
@@ -351,7 +351,7 @@ async function handleExport(): Promise<void> {
 
     const res = await window.electronAPI.documents.openSaveDialog('审计取证单.docx');
     if (res.success && res.data) {
-      const genRes = await window.electronAPI.documents.generate('11审计取证单', exportData, res.data.filePath);
+      const genRes = await window.electronAPI.documents.generate('14审计取证单', exportData, res.data.filePath);
       if (genRes.success) {
         alert('文档已导出：' + res.data!.filePath);
       } else {
@@ -373,6 +373,7 @@ function generatePaper(index: number): void {
       evidenceId: String(evidenceId.value || ''),
       matterIndex: String(index + 1),
       matterContent,
+      projectName: props.projectInfo?.name || '',
     },
   });
 }

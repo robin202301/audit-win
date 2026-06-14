@@ -27,6 +27,7 @@
           <button
             v-for="phase in phaseTabs"
             :key="phase.num"
+            v-memo="[currentPhase === phase.num]"
             :class="[
               'gov-phase-tab',
               currentPhase === phase.num ? 'gov-phase-tab-active' : '',
@@ -43,6 +44,7 @@
           <button
             v-for="step in phases[currentPhase]"
             :key="step.key"
+            v-memo="[step.key, getStatusClass(step.key)]"
             class="gov-step-item"
             @click="goToStep(step.key)"
           >
@@ -65,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, shallowRef } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@stores/project';
 import { WORKFLOW_STEPS } from '@shared/types';

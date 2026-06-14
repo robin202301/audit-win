@@ -144,6 +144,32 @@ onMounted(async () => {
       if (props.step.importFrom && props.step.importFrom.length > 0) {
         autoImportFromPreviousStages(res.data);
       }
+
+      // 审计报告：跨表聚合底稿事实摘要到"发现的主要问题"
+      if (props.step.key === 'report' && !formData.value['problemsFound']) {
+        try {
+          const wpRes = await window.electronAPI.workingPapers.getByProjectId(props.projectId);
+          if (wpRes.success && wpRes.data && Array.isArray(wpRes.data) && wpRes.data.length > 0) {
+            const sorted = (wpRes.data as Array<Record<string, unknown>>).sort((a, b) => {
+              const ia = Number(a.indexNumber) || 0;
+              const ib = Number(b.indexNumber) || 0;
+              return ia - ib;
+            });
+            const lines = sorted.map((wp, i) => {
+              const idx = wp.indexNumber || String(i + 1);
+              const summary = (wp.factSummary as string) || '';
+              const conclusion = (wp.auditConclusion as string) || '';
+              if (!summary && !conclusion) return '';
+              return `${idx}. ${summary}${conclusion ? '（结论：' + conclusion + '）' : ''}`;
+            }).filter(Boolean);
+            if (lines.length > 0) {
+              formData.value['problemsFound'] = lines.join('\n');
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
       // 再加载当前步骤已保存数据（覆盖导入的数据）
       const stageData = res.data.find((s: { stage: string }) => s.stage === props.step.key);
       if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
@@ -349,6 +375,20 @@ function validateDateField(_fieldKey: string): void {
       return;
     }
   }
+
+  // 送达回证：送达日期须在审计开始日期前至少3天
+  if (props.step.key === 'delivery_receipt') {
+    const deliveryVal = formData.value['deliveryDate'];
+    if (deliveryVal) {
+      const diff = noticeDate.getTime() - new Date(deliveryVal).getTime();
+      const daysDiff = diff / (1000 * 60 * 60 * 24);
+      if (daysDiff < 3) {
+        saveError.value = '送达日期须在审计开始日期前至少3天';
+        return;
+      }
+    }
+  }
+
   saveError.value = null;
 }
 
@@ -383,6 +423,20 @@ function validateAllDates(): boolean {
       return false;
     }
   }
+
+  // 送达回证：送达日期须在审计开始日期前至少3天
+  if (props.step.key === 'delivery_receipt') {
+    const deliveryVal = formData.value['deliveryDate'];
+    if (deliveryVal) {
+      const diff = noticeDate.getTime() - new Date(deliveryVal).getTime();
+      const daysDiff = diff / (1000 * 60 * 60 * 24);
+      if (daysDiff < 3) {
+        saveError.value = '送达日期须在审计开始日期前至少3天';
+        return false;
+      }
+    }
+  }
+
   return true;
 }
 

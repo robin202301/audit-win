@@ -23,7 +23,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     title: '审计通知书',
     // template 根据审计类型动态设置（见 GenericStageForm.vue）
     exportFile: '审计通知书.docx',
-    autoFillFromProject: { auditedUnit: 'auditedTarget', auditedLeaderUnit: 'auditedTarget', auditProject: 'name' },
+    autoFillFromProject: { auditedLeaderUnit: 'auditedTarget', auditProject: 'name' },
     defaultValues: {
       auditCommitteeOffice: '中共科右前旗审计委员会办公室',
       auditOrg: '科右前旗审计局',
@@ -52,13 +52,13 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   eight_prohibitions: {
     title: '通知附件八不准',
-    template: '4通知附件八不准',
+    template: '04通知附件八不准',
     exportFile: '通知附件八不准.docx',
     fields: [],
   },
   delivery_receipt: {
     title: '审计文书送达回证',
-    template: '5审计文书送达回证',
+    template: '06审计文书送达回证',
     exportFile: '审计文书送达回证.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -75,7 +75,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   audit_announcement: {
     title: '经济责任审计公示',
-    template: '4经济责任审计公示',
+    template: '05经济责任审计公示',
     exportFile: '经济责任审计公示.docx',
     autoFillFromProject: { projectName: 'name', auditedLeaderUnit: 'auditedTarget' },
     fields: [
@@ -95,13 +95,13 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   commitment_letter: {
     title: '被审计单位承诺书',
-    template: '6被审计单位承诺书',
+    template: '07被审计单位承诺书',
     exportFile: '被审计单位承诺书.docx',
     fields: [],
   },
   survey: {
     title: '被审计单位基本情况表',
-    template: '7调查了解记录1基本情况表',
+    template: '08调查了解记录基本情况表',
     exportFile: '被审计单位基本情况表.xlsx',
     autoFillFromProject: { unitName: 'auditedTarget' },
     fields: [
@@ -127,19 +127,19 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   survey_assessment: {
     title: '评估被审计单位存在重要问题的可能性',
-    template: '8调查了解记录2评估可能性',
+    template: '09评估被审计单位存在问题可能性',
     exportFile: '评估被审计单位存在重要问题的可能性.docx',
     fields: [],
   },
   survey_measures: {
     title: '确定审计事项和审计应对措施',
-    template: '9调查了解记录3审计应对措施',
+    template: '10确定审计事项和审计应对措施',
     exportFile: '确定审计事项和审计应对措施.docx',
     fields: [],
   },
   plan: {
     title: '审计实施方案',
-    template: '10审计实施方案',
+    template: '11审计实施方案',
     exportFile: '审计实施方案.docx',
     autoFillFromProject: { projectName: 'name', auditedUnit: 'auditedTarget' },
     fields: [
@@ -167,6 +167,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   interview_record: {
     title: '谈话记录',
+    template: '13调查谈话笔录模板',
     exportFile: '谈话记录.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -184,7 +185,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   evidence: {
     title: '审计取证单',
-    template: '11审计取证单',
+    template: '14审计取证单',
     exportFile: '审计取证单.docx',
     autoFillFromProject: { projectName: 'name', auditedUnit: 'auditedTarget' },
     fields: [
@@ -203,7 +204,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   working_paper: {
     title: '审计工作底稿',
-    template: '12审计工作底稿',
+    template: '16审计工作底稿',
     exportFile: '审计工作底稿.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -222,9 +223,14 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'val', label: '引用底稿/证据编号' },
     ],
   },
+  working_paper_summary: {
+    title: '审计底稿汇总表',
+    exportFile: '审计底稿汇总表.xls',
+    fields: [],
+  },
   task_list_completion: {
     title: '任务清单完成情况',
-    template: '13任务清单完成情况',
+    template: '19任务清单完成情况',
     exportFile: '任务清单完成情况.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -261,7 +267,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   report_consultation: {
     title: '审计报告征求意见书',
-    template: '14审计报告征求意见书',
+    template: '21审计报告征求意见书',
     exportFile: '审计报告征求意见书.docx',
     autoFillFromProject: { auditedUnit: 'auditedTarget', projectName: 'name' },
     fields: [
@@ -279,7 +285,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   audit_opinion: {
     title: '审核意见书',
-    template: '15审核意见书',
+    template: '22审核意见书',
     exportFile: '审核意见书.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -291,7 +297,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   review_opinion: {
     title: '复核意见书',
-    template: '16复核意见书',
+    template: '23复核意见书',
     exportFile: '复核意见书.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -303,7 +309,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   adjudication_opinion: {
     title: '审理意见书',
-    template: '17审理意见书',
+    template: '24审理意见书',
     exportFile: '审理意见书.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -315,7 +321,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   adjudication_meeting: {
     title: '审理会议纪要',
-    template: '19审理会议纪要',
+    template: '26审理会议纪要',
     exportFile: '审理会议纪要.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -330,7 +336,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   draft_cover: {
     title: '代拟稿封皮',
-    template: '18代拟稿封皮',
+    template: '25代拟稿封皮',
     exportFile: '代拟稿封皮.docx',
     autoFillFromProject: { projectName: 'name' },
     fields: [
@@ -345,7 +351,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   external_report: {
     title: '对外报告',
-    template: '20预算执行对外报告',
+    template: '27预算执行对外报告',
     exportFile: '对外报告.docx',
     autoFillFromProject: { projectName: 'name', auditedUnit: 'auditedTarget' },
     fields: [
