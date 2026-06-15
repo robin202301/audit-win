@@ -53,7 +53,6 @@
               <div class="gov-step-info">
                 <span class="gov-step-label">{{ step.label }}</span>
                 <span v-if="step.auditType" class="gov-step-type">（仅{{ step.auditType }}）</span>
-                <span v-if="step.importFrom && step.importFrom.length > 0" class="gov-step-hint">（引用前序数据）</span>
               </div>
             </div>
             <span :class="getStatusClass(step.key)" class="gov-step-status">
@@ -348,10 +347,6 @@ const phaseTabs = [
   border-radius: 3px;
 }
 
-.gov-step-hint {
-  font-size: 11px;
-  color: #92400e;
-}
 
 /* 状态标签 */
 .gov-status-tag {
