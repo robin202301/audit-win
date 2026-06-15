@@ -35,6 +35,23 @@ export async function runMigrations(db: Database): Promise<void> {
     );
   `);
 
+  // 兼容旧数据库：stage_key → stage，补充缺失列
+  try {
+    await db.exec(`ALTER TABLE stage_progress RENAME COLUMN stage_key TO stage`);
+  } catch {
+    // 列不存在或已重命名，忽略
+  }
+  try {
+    await db.exec(`ALTER TABLE stage_progress ADD COLUMN data_json TEXT NOT NULL DEFAULT '{}'`);
+  } catch {
+    // 列已存在，忽略
+  }
+  try {
+    await db.exec(`ALTER TABLE stage_progress ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`);
+  } catch {
+    // 列已存在，忽略
+  }
+
   // 取证单表
   await db.exec(`
     CREATE TABLE IF NOT EXISTS evidence_items (
