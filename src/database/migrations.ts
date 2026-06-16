@@ -156,9 +156,10 @@ export async function runMigrations(db: Database): Promise<void> {
     );
   `);
 
-  // 初始化项目阶段记录（26个步骤）
+  // 初始化项目阶段记录（28个步骤）
+  await db.exec(`DROP TRIGGER IF EXISTS init_stage_progress`);
   await db.exec(`
-    CREATE TRIGGER IF NOT EXISTS init_stage_progress
+    CREATE TRIGGER init_stage_progress
     AFTER INSERT ON projects
     BEGIN
       INSERT OR IGNORE INTO stage_progress (project_id, stage, status) VALUES (NEW.id, 'notice', 'not_started');
@@ -213,8 +214,9 @@ export async function runMigrations(db: Database): Promise<void> {
   }
 
   // 自动更新 updated_at
+  await db.exec(`DROP TRIGGER IF EXISTS update_project_timestamp`);
   await db.exec(`
-    CREATE TRIGGER IF NOT EXISTS update_project_timestamp
+    CREATE TRIGGER update_project_timestamp
     AFTER UPDATE ON projects
     BEGIN
       UPDATE projects SET updated_at = datetime('now') WHERE id = NEW.id;
