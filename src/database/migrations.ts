@@ -35,11 +35,12 @@ export async function runMigrations(db: Database): Promise<void> {
     );
   `);
 
-  // 兼容旧数据库：stage_key → stage，补充缺失列
-  try {
+  // 兼容旧数据库：stage_key → stage（先检查列是否存在，避免不必要的错误）
+  const stageCols = await db.all<{ name: string }[]>(`PRAGMA table_info(stage_progress)`);
+  const hasStageKey = stageCols.some((c) => c.name === 'stage_key');
+  const hasStage = stageCols.some((c) => c.name === 'stage');
+  if (hasStageKey && !hasStage) {
     await db.exec(`ALTER TABLE stage_progress RENAME COLUMN stage_key TO stage`);
-  } catch {
-    // 列不存在或已重命名，忽略
   }
   try {
     await db.exec(`ALTER TABLE stage_progress ADD COLUMN data_json TEXT NOT NULL DEFAULT '{}'`);
