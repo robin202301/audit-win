@@ -9,7 +9,8 @@ let db: Database | null = null;
 export async function getDatabase(): Promise<Database> {
   if (db) return db;
 
-  const dbPath = path.join(app.getPath('userData'), 'audit.db');
+  // 使用新数据库文件，彻底绕过旧数据库残留问题
+  const dbPath = path.join(app.getPath('userData'), 'audit2.db');
   db = await open({
     filename: dbPath,
     driver: sqlite3.Database,
