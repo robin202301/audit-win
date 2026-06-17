@@ -9,6 +9,19 @@ export interface FormField {
   auditTypes?: string[];  // 适用的审计类型（留空表示通用）
 }
 
+/** 谈话记录子页签配置 */
+export interface InterviewTabConfig {
+  key: string;              // Tab 标识
+  label: string;            // Tab 显示名称
+  template?: string;        // 导出模板名
+  exportFile: string;       // 导出文件名
+  fields: FormField[];      // 表单字段
+  autoFillFromProject?: Record<string, string>;
+  defaultValues?: Record<string, string>;
+  /** 自动从前序步骤导入同名字段 */
+  importFrom?: string[];
+}
+
 export interface StageFormConfig {
   title: string;           // 表单标题
   template?: string;        // 导出模板名（对应 resources/templates/ 中的文件名，不含扩展名）
@@ -16,6 +29,8 @@ export interface StageFormConfig {
   fields: FormField[];
   autoFillFromProject?: Record<string, string>;  // 从项目信息自动填充：formKey -> projectKey
   defaultValues?: Record<string, string>;  // 表单字段默认值（通常来自模板内容）
+  /** 多页签配置（如 interview_record） */
+  tabs?: InterviewTabConfig[];
 }
 
 export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
@@ -167,20 +182,92 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   interview_record: {
     title: '谈话记录',
-    template: '13调查谈话笔录模板',
     exportFile: '谈话记录.docx',
-    autoFillFromProject: { projectName: 'name' },
-    fields: [
-      { key: 'projectName', label: '项目名称', fullSpan: true },
-      { key: 'interviewType', label: '谈话类型', placeholder: '领导班子谈话/民主测评/述职报告' },
-      { key: 'interviewer', label: '谈话人' },
-      { key: 'interviewee', label: '被谈话人' },
-      { key: 'interviewDate', label: '谈话日期', type: 'date' },
-      { key: 'interviewLocation', label: '谈话地点' },
-      { key: 'interviewContent', label: '谈话内容', type: 'textarea', rows: 10, fullSpan: true, placeholder: '谈话记录详细内容' },
-      { key: 'intervieweeSignature', label: '被谈话人签名' },
-      { key: 'content', label: '正文内容', type: 'textarea', rows: 6, fullSpan: true },
-      { key: 'name', label: '人员姓名' },
+    fields: [], // 使用 tabs，不使用顶层 fields
+    tabs: [
+      {
+        key: 'interview_transcript',
+        label: '调查谈话笔录',
+        template: '13调查谈话笔录模板',
+        exportFile: '调查谈话笔录.docx',
+        importFrom: ['notice'],
+        autoFillFromProject: { projectName: 'name' },
+        fields: [
+          { key: 'projectName', label: '项目名称', fullSpan: true },
+          { key: 'auditOrg', label: '审计机关全称', fullSpan: true, placeholder: '例：科右前旗审计局' },
+          { key: 'interviewLocation', label: '谈话地点' },
+          { key: 'interviewTime', label: '谈话时间' },
+          { key: 'interviewer', label: '谈话人' },
+          { key: 'recorder', label: '记录人' },
+          { key: 'intervieweeName', label: '被谈话人姓名' },
+          { key: 'intervieweeIdNumber', label: '身份证号' },
+          { key: 'intervieweeGender', label: '性别' },
+          { key: 'intervieweePolitical', label: '政治面貌' },
+          { key: 'intervieweeEducation', label: '文化程度' },
+          { key: 'intervieweeEthnicity', label: '民族' },
+          { key: 'intervieweeContact', label: '联系方式' },
+          { key: 'intervieweeUnit', label: '工作单位' },
+          { key: 'intervieweePosition', label: '职务' },
+          { key: 'auditMatter', label: '调查事项', fullSpan: true, placeholder: '根据《审计法》第三十七条，现就**事项进行调查核实' },
+          { key: 'questionContent', label: '问', type: 'textarea', rows: 6, fullSpan: true },
+          { key: 'answerContent', label: '答', type: 'textarea', rows: 6, fullSpan: true },
+          { key: 'signatureConfirm', label: '被谈话人签名确认', placeholder: '以上笔录我看过，和我说的相符' },
+        ],
+      },
+      {
+        key: 'work_report_outline',
+        label: '述职报告提纲',
+        template: '15述职报告提纲',
+        exportFile: '述职报告提纲.docx',
+        importFrom: ['notice'],
+        autoFillFromProject: { reporterName: 'auditedLeaderName' },
+        fields: [
+          { key: 'reporterName', label: '述职人姓名', placeholder: '自动从通知书引用被审计领导干部姓名' },
+          { key: 'tenureStartYear', label: '任职起始年' },
+          { key: 'tenureStartMonth', label: '任职起始月' },
+          { key: 'tenureEndYear', label: '任职截止年' },
+          { key: 'tenureEndMonth', label: '任职截止月' },
+          { key: 'unitName', label: '单位' },
+          { key: 'positionTitle', label: '职务称谓', placeholder: '例：局长' },
+          { key: 'divisionOfLabor', label: '一、本人在单位内的分工情况', type: 'textarea', rows: 2, fullSpan: true },
+          { key: 'budgetExecution', label: '二、任期内预算执行情况（近3年）', type: 'textarea', rows: 3, fullSpan: true },
+          { key: 'financialStatus', label: '三、任期内财政收支和财务收支情况', type: 'textarea', rows: 4, fullSpan: true },
+          { key: 'institutionalRules', label: '四、任期内建立的规章制度及执行情况', type: 'textarea', rows: 4, fullSpan: true },
+          { key: 'authenticityLegality', label: '五、预算执行和财务收支真实合法效益情况', type: 'textarea', rows: 3, fullSpan: true },
+          { key: 'socialOrganizations', label: '六、本单位管理的社会团体财务状况', type: 'textarea', rows: 2, fullSpan: true },
+          { key: 'majorInvestments', label: '七、任期内重要投资项目建设管理情况', type: 'textarea', rows: 2, fullSpan: true },
+          { key: 'unfinishedProjects', label: '八、未了工程及经济往来事项', type: 'textarea', rows: 3, fullSpan: true },
+          { key: 'subordinateSupervision', label: '九、对下属单位监督管理情况', type: 'textarea', rows: 2, fullSpan: true },
+          { key: 'publicPropertySettlement', label: '十、个人保管公物公款及往来结清情况', type: 'textarea', rows: 2, fullSpan: true },
+          { key: 'majorDecisions', label: '十一、任期内重大决策及效益', type: 'textarea', rows: 3, fullSpan: true },
+          { key: 'economicAchievements', label: '十二、经济管理中取得的业绩', type: 'textarea', rows: 2, fullSpan: true },
+          { key: 'personalEconomic', label: '十三、个人经济行为（财经纪律、报销等）', type: 'textarea', rows: 4, fullSpan: true },
+          { key: 'otherViolations', label: '十四、其他违反廉洁从政规定问题', type: 'textarea', rows: 2, fullSpan: true },
+          { key: 'lawCompliance', label: '十五、遵守经济法律法规情况', type: 'textarea', rows: 2, fullSpan: true },
+          { key: 'selfEvaluation', label: '十六、经济责任方面简要自我评价', type: 'textarea', rows: 3, fullSpan: true },
+          { key: 'achievementsAndShortcomings', label: '十七、任职期间主要成绩和不足', type: 'textarea', rows: 3, fullSpan: true },
+          { key: 'reporterSignature', label: '述职人签字', placeholder: '述职人签字' },
+          { key: 'reportDate', label: '报告日期', type: 'date' },
+        ],
+      },
+      {
+        key: 'assessment_county',
+        label: '民主测评(旗直)',
+        template: '17民主测评表旗直领导干部',
+        exportFile: '民主测评表(旗直).docx',
+        importFrom: ['notice'],
+        // 纯导出：占位符自动从通知书引用，无需用户输入
+        fields: [],
+      },
+      {
+        key: 'assessment_township',
+        label: '民主测评(乡镇)',
+        template: '18民主测评表乡镇政府领导干部',
+        exportFile: '民主测评表(乡镇).docx',
+        importFrom: ['notice'],
+        // 纯导出：占位符自动从通知书引用，无需用户输入
+        fields: [],
+      },
     ],
   },
   evidence: {

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col gov-layout">
+  <div class="min-h-screen flex flex-col gov-layout gov-page-bg">
     <header class="gov-header">
       <div class="gov-header-inner">
         <div class="flex items-center gap-3">
