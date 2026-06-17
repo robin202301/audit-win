@@ -15,6 +15,8 @@ export async function getDatabase(): Promise<Database> {
     driver: sqlite3.Database,
   });
 
+  // 启用外键约束，确保 ON DELETE CASCADE 生效
+  await db.exec('PRAGMA foreign_keys = ON');
   await runMigrations(db);
   return db;
 }

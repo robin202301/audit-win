@@ -47,7 +47,10 @@ export async function runMigrations(db: Database): Promise<void> {
     // 列已存在，忽略
   }
   try {
-    await db.exec(`ALTER TABLE stage_progress ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))`);
+    // SQLite ALTER TABLE ADD COLUMN 要求默认值为常量，datetime('now') 不是常量
+    // 因此先用空字符串作为默认值，再用 UPDATE 填充
+    await db.exec(`ALTER TABLE stage_progress ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''`);
+    await db.exec(`UPDATE stage_progress SET updated_at = datetime('now') WHERE updated_at = ''`);
   } catch {
     // 列已存在，忽略
   }
@@ -102,7 +105,7 @@ export async function runMigrations(db: Database): Promise<void> {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS survey_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL,
+      project_id INTEGER NOT NULL UNIQUE,
       unit_name TEXT NOT NULL DEFAULT '',
       unit_nature TEXT NOT NULL DEFAULT '',
       legal_representative TEXT NOT NULL DEFAULT '',
@@ -126,6 +129,13 @@ export async function runMigrations(db: Database): Promise<void> {
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
     );
   `);
+
+  // 兼容旧数据库：如果没有 project_id 唯一约束则添加
+  try {
+    await db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_survey_records_project_id ON survey_records(project_id)`);
+  } catch {
+    // 索引已存在或创建失败，忽略
+  }
 
   // 文件附件表
   await db.exec(`
@@ -156,8 +166,23 @@ export async function runMigrations(db: Database): Promise<void> {
     );
   `);
 
-  // 初始化项目阶段记录（28个步骤）
+  // 清理孤立行：删除 project 不存在但子表仍有引用的行
+  // 注意：这在外键未启用时作为兜底清理
+  await db.exec(`DELETE FROM stage_progress WHERE project_id NOT IN (SELECT id FROM projects)`);
+  await db.exec(`DELETE FROM evidence_items WHERE project_id NOT IN (SELECT id FROM projects)`);
+  await db.exec(`DELETE FROM working_papers WHERE project_id NOT IN (SELECT id FROM projects)`);
+  await db.exec(`DELETE FROM survey_records WHERE project_id NOT IN (SELECT id FROM projects)`);
+  await db.exec(`DELETE FROM file_attachments WHERE project_id NOT IN (SELECT id FROM projects)`);
+  await db.exec(`DELETE FROM evidence_working_paper_links WHERE project_id NOT IN (SELECT id FROM projects)`);
+
+  // 清理旧版本遗留触发器（旧版本可能使用不同命名，均需清除）
+  await db.exec(`DROP TRIGGER IF EXISTS trg_init_stages`);
+  await db.exec(`DROP TRIGGER IF EXISTS trg_project_updated`);
+  await db.exec(`DROP TRIGGER IF EXISTS trg_cascade_delete_project`);
   await db.exec(`DROP TRIGGER IF EXISTS init_stage_progress`);
+  await db.exec(`DROP TRIGGER IF EXISTS update_project_timestamp`);
+
+  // 初始化项目阶段记录（28个步骤）
   await db.exec(`
     CREATE TRIGGER init_stage_progress
     AFTER INSERT ON projects
@@ -194,27 +219,35 @@ export async function runMigrations(db: Database): Promise<void> {
   `);
 
   // 迁移：解除取证单与底稿的 1:1 约束，改为 1:N
+  // 检查旧表是否存在 UNIQUE 约束，仅在需要时才迁移
   try {
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS evidence_working_paper_links_new (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        project_id INTEGER NOT NULL,
-        evidence_id INTEGER NOT NULL,
-        working_paper_id INTEGER NOT NULL,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-        FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE,
-        FOREIGN KEY (working_paper_id) REFERENCES working_papers(id) ON DELETE CASCADE
-      );
-    `);
-    await db.exec(`INSERT OR IGNORE INTO evidence_working_paper_links_new SELECT * FROM evidence_working_paper_links`);
-    await db.exec(`DROP TABLE IF EXISTS evidence_working_paper_links`);
-    await db.exec(`ALTER TABLE evidence_working_paper_links_new RENAME TO evidence_working_paper_links`);
+    // 尝试检查 evidence_id 是否仍有 UNIQUE 约束
+    const tableInfo = await db.all<{ sql: string }[]>(
+      `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'evidence_working_paper_links'`
+    );
+    const createSql = tableInfo?.[0]?.sql || '';
+    // 仅当旧表仍含 evidence_id UNIQUE 约束时才执行迁移
+    if (createSql.includes('evidence_id INTEGER NOT NULL UNIQUE')) {
+      await db.exec(`
+        CREATE TABLE IF NOT EXISTS evidence_working_paper_links_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          project_id INTEGER NOT NULL,
+          evidence_id INTEGER NOT NULL,
+          working_paper_id INTEGER NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+          FOREIGN KEY (evidence_id) REFERENCES evidence_items(id) ON DELETE CASCADE,
+          FOREIGN KEY (working_paper_id) REFERENCES working_papers(id) ON DELETE CASCADE
+        );
+      `);
+      await db.exec(`INSERT OR IGNORE INTO evidence_working_paper_links_new SELECT * FROM evidence_working_paper_links`);
+      await db.exec(`DROP TABLE IF EXISTS evidence_working_paper_links`);
+      await db.exec(`ALTER TABLE evidence_working_paper_links_new RENAME TO evidence_working_paper_links`);
+    }
   } catch {
     // 已迁移或表不存在，忽略
   }
 
   // 自动更新 updated_at
-  await db.exec(`DROP TRIGGER IF EXISTS update_project_timestamp`);
   await db.exec(`
     CREATE TRIGGER update_project_timestamp
     AFTER UPDATE ON projects
