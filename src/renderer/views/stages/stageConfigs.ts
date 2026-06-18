@@ -38,7 +38,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     title: '审计通知书',
     // template 根据审计类型动态设置（见 GenericStageForm.vue）
     exportFile: '审计通知书.docx',
-    autoFillFromProject: { auditedLeaderUnit: 'auditedTarget', auditProject: 'name' },
+    autoFillFromProject: { auditedUnit: 'auditedTarget', auditProject: 'name' },
     defaultValues: {
       auditCommitteeOffice: '中共科右前旗审计委员会办公室',
       auditOrg: '科右前旗审计局',
@@ -50,7 +50,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'documentNumber', label: '文号', placeholder: '例：审（委）办经责通〔2024〕1号'},
       { key: 'auditedUnit', label: '被审计单位', fullSpan: true, placeholder: '例：科右前旗财政局' },
       { key: 'auditedLeaderName', label: '被审计领导干部姓名', auditTypes: ['经济责任审计'] },
-      { key: 'auditedLeaderUnit', label: '被审计领导干部所在单位', fullSpan: true, auditTypes: ['经济责任审计'] },
       { key: 'auditedLeaderPosition', label: '被审计领导干部职务', auditTypes: ['经济责任审计'] },
       { key: 'auditStartDate', label: '审计开始日期', type: 'date' },
       { key: 'auditYear', label: '审计年度', placeholder: '例：2024', auditTypes: ['预算执行审计'] },
@@ -92,10 +91,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     title: '经济责任审计公示',
     template: '05经济责任审计公示',
     exportFile: '经济责任审计公示.docx',
-    autoFillFromProject: { projectName: 'name', auditedLeaderUnit: 'auditedTarget' },
+    autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '审计项目名称', fullSpan: true },
-      { key: 'auditedLeaderUnit', label: '被审计领导干部所在单位' },
       { key: 'auditedLeaderName', label: '被审计领导干部姓名' },
       { key: 'auditedLeaderPosition', label: '被审计领导干部职务' },
       { key: 'auditStartDate', label: '审计开始日期', type: 'date' },

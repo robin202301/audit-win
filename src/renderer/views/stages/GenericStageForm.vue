@@ -265,6 +265,8 @@ async function handleExport(): Promise<void> {
     }
     if (props.projectInfo) {
       if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
+      // 被审计领导干部所在单位 = 被审计单位（避免重复字段）
+      if (!exportData.auditedLeaderUnit) exportData.auditedLeaderUnit = exportData.auditedUnit || props.projectInfo.auditedTarget;
       if (!exportData.auditProject) exportData.auditProject = props.projectInfo.name;
       if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
     }
