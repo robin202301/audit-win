@@ -27,23 +27,36 @@ jobs:
           cache: 'npm'
 
       - name: 安装依赖
-        # 使用 ci 确保环境一致性，如果是常规开发用 install 也可以
-        run: npm install
+        run: npm ci
+        # ci 确保完全按 package-lock.json 安装，避免版本漂移
 
       - name: 重建原生模块 (针对 C++ 扩展)
         run: npx electron-rebuild
 
+      - name: 清理旧构建产物
+        run: |
+          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+          if (Test-Path release) { Remove-Item -Recurse -Force release }
+          Write-Host "旧构建产物已清理"
+
       - name: 前端打包 (Vite/Webpack)
         run: npm run build
 
+      - name: 验证：确保无旧代码残留
+        run: |
+          $residue = Select-String -Path "dist\renderer\assets\*.js" -Pattern "被审计领导干部所在单位" -SimpleMatch
+          if ($residue) {
+            Write-Error "发现旧代码残留：被审计领导干部所在单位"
+            exit 1
+          }
+          Write-Host "验证通过：无旧代码残留"
+
       - name: 打包 Windows 安装程序
-        # 使用 --publish never 确保在此步骤不触发发布，由下方的 release job 统一处理
         run: npx electron-builder --win --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 调试：列出文件确保路径正确
-        # 如果还是找不到文件，这个步骤会在日志里告诉你文件到底在哪
         run: |
           Get-ChildItem -Path . -Recurse -Filter "*.exe"
           Get-ChildItem -Path . -Recurse -Filter "*.yml"
