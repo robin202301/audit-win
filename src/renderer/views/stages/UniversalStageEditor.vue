@@ -8,10 +8,10 @@
         <h2 class="text-xl font-bold">{{ step.label }}</h2>
       </div>
       <div class="flex gap-2">
-        <button class="btn-secondary" @click="handleUploadTemplate">上传模板</button>
-        <button class="btn-secondary" @click="handleResetTemplate">重置为模板</button>
+        <button v-if="isEditing" class="btn-secondary" @click="handleUploadTemplate">上传模板</button>
+        <button v-if="isEditing" class="btn-secondary" @click="handleResetTemplate">重置为模板</button>
         <button v-if="hasSavedData && !isEditing" class="btn-secondary gov-btn-edit" @click="handleEdit">修改</button>
-        <button class="btn-primary" @click="handleSave">保存</button>
+        <button v-if="isEditing" class="btn-primary" @click="handleSave">保存</button>
         <button class="btn-primary" @click="handleExport">导出文档</button>
       </div>
     </div>

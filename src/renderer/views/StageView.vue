@@ -27,22 +27,22 @@
       :stage="stage"
     />
 
-    <!-- 其余所有步骤使用通用表单（结构化字段 + 自动导入前序数据） -->
+    <!-- 模板型步骤（0字段）使用大输入框编辑器，支持模板内容编辑 -->
+    <UniversalStageEditor
+      v-else-if="isTemplateOnlyStep"
+      :key="`${projectId}-${stage}`"
+      :project-id="Number(projectId)"
+      :step="workflowStep!"
+      :project-info="projectInfo!"
+    />
+
+    <!-- 其余所有有字段的步骤使用通用表单（结构化字段 + 自动导入前序数据） -->
     <GenericStageForm
       v-else-if="workflowStep"
       :key="`${projectId}-${stage}`"
       :project-id="Number(projectId)"
       :step="workflowStep"
-      :project-info="projectInfo"
-    />
-
-    <!-- 无配置的步骤使用大输入框编辑器 -->
-    <UniversalStageEditor
-      v-else-if="fallbackStep"
-      :key="`${projectId}-${stage}`"
-      :project-id="Number(projectId)"
-      :step="fallbackStep"
-      :project-info="projectInfo"
+      :project-info="projectInfo!"
     />
 
     <div v-else class="card text-center py-12 text-gray-500">
@@ -77,11 +77,10 @@ const isStepValidForAuditType = computed(() => {
   if (!step || !step.auditType) return true; // 通用步骤
   return projectInfo.value?.auditType === step.auditType;
 });
-const fallbackStep = computed(() => {
-  // 对于不在 STAGE_FORM_CONFIGS 中的步骤，返回一个最小配置
-  const step = WORKFLOW_STEPS.find(s => s.key === stage);
-  if (step && !STAGE_FORM_CONFIGS[step.key]) return step;
-  return undefined;
+// 模板型步骤：有配置但无表单字段，使用大输入框编辑器编辑模板内容
+const isTemplateOnlyStep = computed(() => {
+  const config = STAGE_FORM_CONFIGS[stage];
+  return config && config.fields.length === 0;
 });
 const stepTitle = computed(() => workflowStep.value?.label || '未知阶段');
 
