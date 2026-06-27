@@ -371,6 +371,8 @@ function validateDateField(_fieldKey: string): void {
   const noticeDate = new Date(noticeSaveDate.value);
   const dateFields = config.fields.filter(f => f.type === 'date');
   for (const field of dateFields) {
+    // 送达回证的送达日期应早于审计开始日期，走专属校验逻辑
+    if (props.step.key === 'delivery_receipt' && field.key === 'deliveryDate') continue;
     const val = formData.value[field.key];
     if (val && new Date(val) < noticeDate) {
       saveError.value = `${field.label} 不能早于审计通知书的审计开始日期`;
@@ -419,6 +421,8 @@ function validateAllDates(): boolean {
   const noticeDate = new Date(noticeSaveDate.value);
   const dateFields = config.fields.filter(f => f.type === 'date');
   for (const field of dateFields) {
+    // 送达回证的送达日期应早于审计开始日期，走专属校验逻辑
+    if (props.step.key === 'delivery_receipt' && field.key === 'deliveryDate') continue;
     const val = formData.value[field.key];
     if (val && new Date(val) < noticeDate) {
       saveError.value = `${field.label} 不能早于审计通知书的审计开始日期`;
