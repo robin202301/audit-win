@@ -214,8 +214,18 @@ async function loadSavedData(): Promise<void> {
         }
       }
       formData.value = { ...allTabData.value[activeTab.value] };
-      hasSavedData.value = true;
-      isEditing.value = false;
+      // 仅当存在有意义的填写内容时才进入只读态（防止误保存空表单导致页面锁定）
+      const hasContent = (() => {
+        for (const tab of config.tabs!) {
+          const tabData = allTabData.value[tab.key];
+          if (tabData && Object.values(tabData).some(v => v && String(v).trim() !== '')) return true;
+        }
+        return false;
+      })();
+      if (hasContent) {
+        hasSavedData.value = true;
+        isEditing.value = false;
+      }
     }
   } catch {
     // ignore

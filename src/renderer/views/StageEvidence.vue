@@ -151,6 +151,7 @@
     </div>
 
     <div v-if="saveError" class="gov-error-msg">{{ saveError }}</div>
+    <div v-if="saveSuccess" class="gov-success-msg">保存成功</div>
   </div>
 </template>
 
@@ -184,6 +185,7 @@ const formData = ref({
 const matters = ref<MatterItem[]>([{ content: '' }]);
 const saving = ref(false);
 const saveError = ref<string | null>(null);
+const saveSuccess = ref(false);
 const hasSavedData = ref(false);
 const isEditing = ref(true);
 const editKey = ref(0);
@@ -233,8 +235,15 @@ onMounted(async () => {
       if (matters.value.length === 0) {
         matters.value = [{ content: '' }];
       }
-      hasSavedData.value = true;
-      isEditing.value = false;
+      // 仅当存在有意义的内容时才进入只读态（防止误保存空数据导致页面锁定）
+      const hasContent = matters.value.some(m => m.content?.trim()) ||
+        Object.entries(formData.value).some(([k, v]) =>
+          k !== 'projectName' && k !== 'auditedUnit' && v && v.trim() !== ''
+        );
+      if (hasContent) {
+        hasSavedData.value = true;
+        isEditing.value = false;
+      }
 
       // 加载底稿关联状态
       await loadPaperStatus();
@@ -323,7 +332,8 @@ async function handleSave(): Promise<void> {
       isEditing.value = false;
       stepStatus.value = 'in_progress';
       await loadPaperStatus();
-      alert('保存成功');
+      saveSuccess.value = true;
+      setTimeout(() => { saveSuccess.value = false; }, 3000);
     } else {
       saveError.value = res.message || '保存失败';
     }
@@ -541,6 +551,13 @@ function generatePaper(index: number): void {
   margin-top: 16px;
   color: #dc2626;
   font-size: 13px;
+}
+
+.gov-success-msg {
+  margin-top: 16px;
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* 审计事项区域 */

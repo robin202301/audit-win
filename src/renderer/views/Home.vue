@@ -82,7 +82,7 @@
 
     <!-- 新建项目对话框 -->
     <div v-if="showCreateDialog" class="gov-modal-overlay" @click.self="showCreateDialog = false">
-      <div class="gov-modal">
+      <div class="gov-modal" @click.stop>
         <div class="gov-modal-header">
           <h3 class="gov-modal-title">新建审计项目</h3>
           <button class="gov-modal-close" @click="showCreateDialog = false">
@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive, shallowRef } from 'vue';
+import { ref, computed, onMounted, shallowRef } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@stores/project';
 import type { Project } from '@shared/types';
@@ -132,7 +132,7 @@ const store = useProjectStore();
 const showCreateDialog = ref(false);
 const searchKeyword = ref('');
 const displayCount = shallowRef(PAGE_SIZE);
-const newProject = reactive({
+const newProject = ref({
   name: '',
   auditedTarget: '',
   auditType: '经济责任审计',
@@ -172,16 +172,16 @@ function openProject(id: number): void {
 }
 
 async function handleCreate(): Promise<void> {
-  if (!newProject.name.trim()) return;
+  if (!newProject.value.name.trim()) return;
   const id = await store.createProject({
-    name: newProject.name.trim(),
-    auditedTarget: newProject.auditedTarget.trim(),
-    auditType: newProject.auditType,
+    name: newProject.value.name.trim(),
+    auditedTarget: newProject.value.auditedTarget.trim(),
+    auditType: newProject.value.auditType,
   });
   if (id) {
     showCreateDialog.value = false;
-    newProject.name = '';
-    newProject.auditedTarget = '';
+    newProject.value.name = '';
+    newProject.value.auditedTarget = '';
   }
 }
 

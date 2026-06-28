@@ -81,6 +81,7 @@
     </div>
 
     <div v-if="saveError" class="gov-error-msg">{{ saveError }}</div>
+    <div v-if="saveSuccess" class="gov-success-msg">保存成功</div>
   </div>
 </template>
 
@@ -116,6 +117,7 @@ const visibleFields = computed(() => {
 const formData = ref<Record<string, string>>({});
 const saving = ref(false);
 const saveError = ref<string | null>(null);
+const saveSuccess = ref(false);
 const hasSavedData = ref(false);
 const isEditing = ref(true);
 const editKey = ref(0);  // 用于强制 DOM 重新渲染
@@ -179,8 +181,12 @@ onMounted(async () => {
             formData.value[key] = parsed[key];
           }
         }
-        hasSavedData.value = true;
-        isEditing.value = false;
+        // 仅当存在有意义的填写内容时才进入只读态（防止误保存空表单导致页面锁定）
+        const hasContent = Object.values(parsed).some(v => v && String(v).trim() !== '');
+        if (hasContent) {
+          hasSavedData.value = true;
+          isEditing.value = false;
+        }
         if (stageData.status) {
           stepStatus.value = stageData.status;
         }
@@ -470,7 +476,8 @@ async function handleSave(): Promise<void> {
       hasSavedData.value = true;
       isEditing.value = false;
       stepStatus.value = 'in_progress';
-      alert('保存成功');
+      saveSuccess.value = true;
+      setTimeout(() => { saveSuccess.value = false; }, 3000);
     } else {
       saveError.value = res.message || '保存失败';
     }
@@ -491,7 +498,8 @@ async function handleMarkComplete(): Promise<void> {
     );
     if (res.success) {
       stepStatus.value = 'completed';
-      alert('已标记为完成');
+      saveSuccess.value = true;
+      setTimeout(() => { saveSuccess.value = false; }, 3000);
     } else {
       alert('操作失败：' + (res.message || '未知错误'));
     }
@@ -710,5 +718,12 @@ async function handleMarkComplete(): Promise<void> {
   margin-top: 16px;
   color: #dc2626;
   font-size: 13px;
+}
+
+.gov-success-msg {
+  margin-top: 16px;
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 500;
 }
 </style>
