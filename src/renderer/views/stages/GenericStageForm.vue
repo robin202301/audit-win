@@ -43,7 +43,7 @@
     </div>
 
     <!-- 编辑态：表单输入 -->
-    <div v-if="config.fields.length > 0 && isEditing" :key="'edit-' + editKey" class="gov-form-grid">
+    <div v-if="config.fields.length > 0 && isEditing" :key="'edit-' + editKey" class="gov-form-grid" @focusin="formTouched = true">
       <div v-for="field in visibleFields" :key="field.key" :class="field.fullSpan ? 'gov-span-2' : ''">
         <label class="gov-field-label">{{ field.label }}</label>
         <textarea
@@ -122,6 +122,7 @@ const hasSavedData = ref(false);
 const isEditing = ref(true);
 const editKey = ref(0);  // 用于强制 DOM 重新渲染
 const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
+const formTouched = ref(false);  // 用户是否已触碰表单（防止异步加载覆盖用户输入）
 
 // 初始化表单字段（优先使用配置中的默认值）
 for (const field of config.fields) {
@@ -148,17 +149,20 @@ onMounted(async () => {
       }
 
       // 先加载当前步骤已保存数据（覆盖导入的数据）
+      // 仅当用户尚未触碰表单时才覆盖（防止异步加载竞态：API 返回时用户已开始编辑）
       const stageData = res.data.find((s: { stage: string }) => s.stage === props.step.key);
       if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
         const parsed = JSON.parse(stageData.dataJson);
-        for (const key of Object.keys(formData.value)) {
-          if (parsed[key] !== undefined) {
-            formData.value[key] = parsed[key];
+        if (!formTouched.value) {
+          for (const key of Object.keys(formData.value)) {
+            if (parsed[key] !== undefined) {
+              formData.value[key] = parsed[key];
+            }
           }
         }
         // 仅当存在有意义的填写内容时才进入只读态（防止误保存空表单导致页面锁定）
         const hasContent = Object.values(parsed).some(v => v && String(v).trim() !== '');
-        if (hasContent) {
+        if (hasContent && !formTouched.value) {
           hasSavedData.value = true;
           isEditing.value = false;
         }

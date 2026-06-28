@@ -51,6 +51,7 @@
           :rows="field.rows || 3"
           :placeholder="field.placeholder || ''"
           :readonly="!isEditing"
+          @input="formTouched = true"
         />
         <input
           v-else-if="field.type === 'date'"
@@ -59,6 +60,7 @@
           class="gov-input"
           :placeholder="field.placeholder || ''"
           :readonly="!isEditing"
+          @input="formTouched = true"
         />
         <input
           v-else
@@ -66,6 +68,7 @@
           class="gov-input"
           :placeholder="field.placeholder || ''"
           :readonly="!isEditing"
+          @input="formTouched = true"
         />
       </div>
     </div>
@@ -102,6 +105,7 @@ const saveError = ref<string | null>(null);
 const saveSuccess = ref(false);
 const hasSavedData = ref(false);
 const isEditing = ref(true);
+const formTouched = ref(false);  // 用户是否已触碰表单（防止异步加载覆盖用户输入）
 
 // 所有 tab 的数据存储（key → 该 tab 的 formData）
 const allTabData = ref<Record<string, Record<string, string>>>({});
@@ -202,18 +206,20 @@ async function loadSavedData(): Promise<void> {
     const stageData = res.data.find((s: { stage: string }) => s.stage === stageKey.value);
     if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
       const parsed = JSON.parse(stageData.dataJson);
-      // 恢复各 tab 数据
-      for (const tab of config.tabs!) {
-        if (parsed[tab.key]) {
-          const tabData = parsed[tab.key];
-          for (const field of tab.fields) {
-            if (tabData[field.key] !== undefined) {
-              allTabData.value[tab.key][field.key] = tabData[field.key];
+      // 仅当用户尚未触碰表单时才恢复已保存数据（防止异步加载竞态覆盖用户输入）
+      if (!formTouched.value) {
+        for (const tab of config.tabs!) {
+          if (parsed[tab.key]) {
+            const tabData = parsed[tab.key];
+            for (const field of tab.fields) {
+              if (tabData[field.key] !== undefined) {
+                allTabData.value[tab.key][field.key] = tabData[field.key];
+              }
             }
           }
         }
+        formData.value = { ...allTabData.value[activeTab.value] };
       }
-      formData.value = { ...allTabData.value[activeTab.value] };
       // 仅当存在有意义的填写内容时才进入只读态（防止误保存空表单导致页面锁定）
       const hasContent = (() => {
         for (const tab of config.tabs!) {
@@ -222,7 +228,7 @@ async function loadSavedData(): Promise<void> {
         }
         return false;
       })();
-      if (hasContent) {
+      if (hasContent && !formTouched.value) {
         hasSavedData.value = true;
         isEditing.value = false;
       }

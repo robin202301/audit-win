@@ -24,7 +24,7 @@
     </div>
 
     <!-- 编辑态 -->
-    <div v-if="isEditing" :key="'edit-' + editKey">
+    <div v-if="isEditing" :key="'edit-' + editKey" @focusin="formTouched = true">
       <!-- 基础信息 -->
       <div class="gov-form-grid">
         <div>
@@ -188,6 +188,7 @@ const saveError = ref<string | null>(null);
 const saveSuccess = ref(false);
 const hasSavedData = ref(false);
 const isEditing = ref(true);
+const formTouched = ref(false);  // 用户是否已触碰表单（防止异步加载覆盖用户输入）
 const editKey = ref(0);
 const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
 const paperStatus = ref<Record<number, boolean>>({});
@@ -206,41 +207,44 @@ onMounted(async () => {
     if (res.success && res.data && res.data.length > 0) {
       const item = res.data[0];
       evidenceId.value = item.id;
-      formData.value = {
-        serialNumber: item.serialNumber || '',
-        projectName: item.projectName || props.projectInfo?.name || '',
-        auditedUnit: item.auditedUnit || props.projectInfo?.auditedTarget || '',
-        legalBasis: item.legalBasis || '',
-        auditorName: item.auditorName || '',
-        compileDate: item.compileDate || '',
-        providerOpinion: item.providerOpinion || '',
-        providerSignature: item.providerSignature || '',
-        feedbackDeadline: item.feedbackDeadline || '',
-      };
-      // 解析事项列表
-      if (item.matterSummary) {
-        try {
-          const parsed = JSON.parse(item.matterSummary);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            matters.value = parsed.map((m: { content: string }) => ({ content: m.content || '' }));
-          } else if (typeof parsed === 'string' && parsed) {
-            matters.value = [{ content: parsed }];
-          }
-        } catch {
-          if (item.matterSummary) {
-            matters.value = [{ content: item.matterSummary }];
+      // 仅当用户尚未触碰表单时才恢复已保存数据（防止异步加载竞态覆盖用户输入）
+      if (!formTouched.value) {
+        formData.value = {
+          serialNumber: item.serialNumber || '',
+          projectName: item.projectName || props.projectInfo?.name || '',
+          auditedUnit: item.auditedUnit || props.projectInfo?.auditedTarget || '',
+          legalBasis: item.legalBasis || '',
+          auditorName: item.auditorName || '',
+          compileDate: item.compileDate || '',
+          providerOpinion: item.providerOpinion || '',
+          providerSignature: item.providerSignature || '',
+          feedbackDeadline: item.feedbackDeadline || '',
+        };
+        // 解析事项列表
+        if (item.matterSummary) {
+          try {
+            const parsed = JSON.parse(item.matterSummary);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              matters.value = parsed.map((m: { content: string }) => ({ content: m.content || '' }));
+            } else if (typeof parsed === 'string' && parsed) {
+              matters.value = [{ content: parsed }];
+            }
+          } catch {
+            if (item.matterSummary) {
+              matters.value = [{ content: item.matterSummary }];
+            }
           }
         }
-      }
-      if (matters.value.length === 0) {
-        matters.value = [{ content: '' }];
+        if (matters.value.length === 0) {
+          matters.value = [{ content: '' }];
+        }
       }
       // 仅当存在有意义的内容时才进入只读态（防止误保存空数据导致页面锁定）
       const hasContent = matters.value.some(m => m.content?.trim()) ||
         Object.entries(formData.value).some(([k, v]) =>
           k !== 'projectName' && k !== 'auditedUnit' && v && v.trim() !== ''
         );
-      if (hasContent) {
+      if (hasContent && !formTouched.value) {
         hasSavedData.value = true;
         isEditing.value = false;
       }
