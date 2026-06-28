@@ -27,8 +27,9 @@ jobs:
           cache: 'npm'
 
       - name: 安装依赖
-        run: npm ci
-        # ci 确保完全按 package-lock.json 安装，避免版本漂移
+        run: npm install
+        # npm ci 会严格校验 lock 文件中全平台的 esbuild 可选依赖，Windows 上报 notsup；
+        # npm install 对跨平台可选依赖更宽容，安装失败的可选包会自动跳过
 
       - name: 重建原生模块 (针对 C++ 扩展)
         run: npx electron-rebuild
