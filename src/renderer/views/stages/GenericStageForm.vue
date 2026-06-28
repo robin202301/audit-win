@@ -147,7 +147,27 @@ onMounted(async () => {
         autoImportFromPreviousStages(res.data);
       }
 
-      // 送达回证：文书编号来自审计通知书的文号
+      // 先加载当前步骤已保存数据（覆盖导入的数据）
+      const stageData = res.data.find((s: { stage: string }) => s.stage === props.step.key);
+      if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
+        const parsed = JSON.parse(stageData.dataJson);
+        for (const key of Object.keys(formData.value)) {
+          if (parsed[key] !== undefined) {
+            formData.value[key] = parsed[key];
+          }
+        }
+        // 仅当存在有意义的填写内容时才进入只读态（防止误保存空表单导致页面锁定）
+        const hasContent = Object.values(parsed).some(v => v && String(v).trim() !== '');
+        if (hasContent) {
+          hasSavedData.value = true;
+          isEditing.value = false;
+        }
+        if (stageData.status) {
+          stepStatus.value = stageData.status;
+        }
+      }
+
+      // 送达回证：文书编号来自审计通知书的文号（加载已保存数据后再自动填充，避免被旧空值覆盖）
       if (props.step.key === 'delivery_receipt' && !formData.value['documentNo']) {
         const noticeData = res.data.find((s: { stage: string }) => s.stage === 'notice');
         if (noticeData && noticeData.dataJson && noticeData.dataJson !== '{}') {
@@ -160,7 +180,7 @@ onMounted(async () => {
         }
       }
 
-      // 审计报告：跨表聚合底稿事实摘要到"发现的主要问题"
+      // 审计报告：跨表聚合底稿事实摘要到"发现的主要问题"（加载已保存数据后再聚合）
       if (props.step.key === 'report' && !formData.value['problemsFound']) {
         try {
           const wpRes = await window.electronAPI.workingPapers.getByProjectId(props.projectId);
@@ -183,25 +203,6 @@ onMounted(async () => {
           }
         } catch {
           // ignore
-        }
-      }
-      // 再加载当前步骤已保存数据（覆盖导入的数据）
-      const stageData = res.data.find((s: { stage: string }) => s.stage === props.step.key);
-      if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
-        const parsed = JSON.parse(stageData.dataJson);
-        for (const key of Object.keys(formData.value)) {
-          if (parsed[key] !== undefined) {
-            formData.value[key] = parsed[key];
-          }
-        }
-        // 仅当存在有意义的填写内容时才进入只读态（防止误保存空表单导致页面锁定）
-        const hasContent = Object.values(parsed).some(v => v && String(v).trim() !== '');
-        if (hasContent) {
-          hasSavedData.value = true;
-          isEditing.value = false;
-        }
-        if (stageData.status) {
-          stepStatus.value = stageData.status;
         }
       }
     }
