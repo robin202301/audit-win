@@ -147,6 +147,19 @@ onMounted(async () => {
         autoImportFromPreviousStages(res.data);
       }
 
+      // 送达回证：文书编号来自审计通知书的文号
+      if (props.step.key === 'delivery_receipt' && !formData.value['documentNo']) {
+        const noticeData = res.data.find((s: { stage: string }) => s.stage === 'notice');
+        if (noticeData && noticeData.dataJson && noticeData.dataJson !== '{}') {
+          try {
+            const noticeParsed = JSON.parse(noticeData.dataJson);
+            if (noticeParsed.documentNumber) {
+              formData.value['documentNo'] = noticeParsed.documentNumber;
+            }
+          } catch { /* ignore */ }
+        }
+      }
+
       // 审计报告：跨表聚合底稿事实摘要到"发现的主要问题"
       if (props.step.key === 'report' && !formData.value['problemsFound']) {
         try {

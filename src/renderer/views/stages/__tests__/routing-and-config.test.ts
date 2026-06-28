@@ -78,10 +78,9 @@ describe('送达回证表单字段对齐模板占位符', () => {
     expect(oldField).toBeUndefined(); // 已改名
   });
 
-  it('应包含 auditedUnit 字段（对应 {auditedUnit}）', () => {
+  it('auditedUnit 不在表单字段中（由导出逻辑自动填充）', () => {
     const field = deliveryConfig.fields.find(f => f.key === 'auditedUnit');
-    expect(field).toBeDefined();
-    expect(field!.label).toBe('送达机关名称');
+    expect(field).toBeUndefined(); // 不作为输入框展示，导出时自动从项目信息填充
   });
 
   it('应包含 address 字段（对应 {address}）', () => {
@@ -96,16 +95,19 @@ describe('送达回证表单字段对齐模板占位符', () => {
     expect(field!.label).toBe('邮编');
   });
 
-  it('autoFillFromProject 应包含 auditedUnit', () => {
+  it('autoFillFromProject 应包含 recipientUnit', () => {
     expect(deliveryConfig.autoFillFromProject).toBeDefined();
-    expect(deliveryConfig.autoFillFromProject!.auditedUnit).toBe('auditedTarget');
+    expect(deliveryConfig.autoFillFromProject!.recipientUnit).toBe('auditedTarget');
   });
 
-  it('所有5个模板占位符都有对应的表单字段', () => {
-    const templatePlaceholders = ['documentName', 'documentNo', 'auditedUnit', 'address', 'postCode'];
-    for (const key of templatePlaceholders) {
+  it('模板占位符对应的表单字段均已配置', () => {
+    // auditedUnit 由导出逻辑自动填充，不展示为输入框
+    const formFieldPlaceholders = ['documentName', 'documentNo', 'address', 'postCode'];
+    for (const key of formFieldPlaceholders) {
       expect(deliveryConfig.fields.find(f => f.key === key)).toBeDefined();
     }
+    // 验证 auditedUnit 不在字段中
+    expect(deliveryConfig.fields.find(f => f.key === 'auditedUnit')).toBeUndefined();
   });
 });
 
