@@ -17,6 +17,12 @@ describe('StageView 路由逻辑', () => {
     expect(isTemplateOnlyStep('eight_prohibitions')).toBe(true);
   });
 
+  it('eight_prohibitions 不应引用前序数据（仅保留模板内容）', () => {
+    const step = WORKFLOW_STEPS.find(s => s.key === 'eight_prohibitions');
+    expect(step).toBeDefined();
+    expect(step!.importFrom || []).toEqual([]);
+  });
+
   it('commitment_letter 应为模板型步骤（0字段）', () => {
     expect(isTemplateOnlyStep('commitment_letter')).toBe(true);
   });
@@ -69,13 +75,14 @@ describe('送达回证表单字段对齐模板占位符', () => {
     expect(field!.label).toBe('文书名称');
   });
 
-  it('应包含 documentNo 字段（对应 {documentNo}），而非 documentNumber', () => {
+  it('应包含 documentNo 字段（表单键名），模板占位符为 documentNumber，导出时由拼接逻辑映射', () => {
     const field = deliveryConfig.fields.find(f => f.key === 'documentNo');
     expect(field).toBeDefined();
     expect(field!.label).toBe('文书编号');
 
+    // 表单字段不用 documentNumber（避免与模板占位符混淆，导出时由 composeDeliveryReceiptFields 拼接）
     const oldField = deliveryConfig.fields.find(f => f.key === 'documentNumber');
-    expect(oldField).toBeUndefined(); // 已改名
+    expect(oldField).toBeUndefined();
   });
 
   it('auditedUnit 不在表单字段中（由导出逻辑自动填充）', () => {
@@ -149,5 +156,56 @@ describe('UniversalStageEditor 按钮可见性', () => {
     expect(btns.uploadButton).toBe(true);
     expect(btns.resetButton).toBe(true);
     expect(btns.exportButton).toBe(true);
+  });
+});
+
+describe('公示导入排除 + 送达回证导出拼接（回归防护）', () => {
+  it('audit_announcement 步骤应排除导入 text 字段（通知书的配合联系人不得串入补充文本）', () => {
+    const step = WORKFLOW_STEPS.find(s => s.key === 'audit_announcement');
+    expect(step).toBeDefined();
+    expect(step!.importExclude).toBeDefined();
+    expect(step!.importExclude).toContain('text');
+  });
+
+  it('通知书与公示的 text 字段语义不同（配合联系人 vs 补充文本）', () => {
+    const noticeText = STAGE_FORM_CONFIGS['notice'].fields.find(f => f.key === 'text');
+    const announceText = STAGE_FORM_CONFIGS['audit_announcement'].fields.find(f => f.key === 'text');
+    expect(noticeText).toBeDefined();
+    expect(announceText).toBeDefined();
+    expect(noticeText!.label).toBe('配合联系人/财务负责人');
+    expect(announceText!.label).toBe('补充文本');
+  });
+
+  it('其他步骤的 importExclude 应为受控白名单（防串值范围可预期）', () => {
+    // 通知书 content=附件内容、text=配合联系人，与下游同名字段语义不同，必须排除；
+    // 报告 documentNumber=报告文号（报），与通知书文号（通）不可直接复制
+    const expected: Record<string, string[]> = {
+      audit_announcement: ['text', 'content'],
+      delivery_receipt: ['content'],
+      report: ['documentNumber', 'text', 'content'],
+      report_consultation: ['text', 'content'],
+      result_report: ['text', 'content'],
+    };
+    for (const step of WORKFLOW_STEPS) {
+      if (expected[step.key]) {
+        expect(step.importExclude).toEqual(expected[step.key]);
+      } else {
+        expect(step.importExclude || []).toEqual([]);
+      }
+    }
+  });
+
+  it('需要引用通知书内容的步骤应包含 notice 导入源', () => {
+    for (const key of ['delivery_receipt', 'audit_announcement', 'plan', 'report', 'report_consultation', 'result_report']) {
+      const step = WORKFLOW_STEPS.find(s => s.key === key);
+      expect(step).toBeDefined();
+      expect(step!.importFrom || []).toContain('notice');
+    }
+  });
+
+  it('方案的开始日期应通过键名映射引用通知书的审计开始日期', () => {
+    const step = WORKFLOW_STEPS.find(s => s.key === 'plan');
+    expect(step).toBeDefined();
+    expect(step!.importMap).toEqual({ startDate: 'auditStartDate' });
   });
 });

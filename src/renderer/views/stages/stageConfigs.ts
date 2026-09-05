@@ -471,7 +471,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   result_report: {
     title: '经责审计结果报告',
     exportFile: '经责审计结果报告.docx',
-    autoFillFromProject: { projectName: 'name', auditedLeaderName: 'auditedTarget' },
+    // 被审计领导干部姓名不取自项目信息（auditedTarget 是被审计单位），
+    // 而是通过 importFrom 引用通知书中的 auditedLeaderName（见 WorkflowStep 配置）
+    autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
       { key: 'auditedLeaderName', label: '被审计领导干部' },

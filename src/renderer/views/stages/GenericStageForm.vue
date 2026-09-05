@@ -90,6 +90,7 @@ import { computed, nextTick, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 import { STAGE_FORM_CONFIGS } from './stageConfigs';
 import { NOTICE_TEMPLATES } from '@shared/types';
+import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData } from './formDataUtils';
 
 const props = defineProps<{
   projectId: number;
@@ -215,7 +216,7 @@ onMounted(async () => {
   }
 });
 
-/** 自动从前序步骤导入数据（匹配同名字段） */
+/** 自动从前序步骤导入数据（匹配同名字段，排除 importExclude 中的字段） */
 function autoImportFromPreviousStages(allData: { stage: string; dataJson: string }[]): void {
   if (!props.step.importFrom) return;
   for (const srcKey of props.step.importFrom) {
@@ -223,10 +224,9 @@ function autoImportFromPreviousStages(allData: { stage: string; dataJson: string
     if (srcData && srcData.dataJson && srcData.dataJson !== '{}') {
       try {
         const parsed = JSON.parse(srcData.dataJson);
-        for (const key of Object.keys(parsed)) {
-          if (formData.value[key] !== undefined && !formData.value[key] && parsed[key]) {
-            formData.value[key] = parsed[key];
-          }
+        const picked = pickImportableFields(parsed, formData.value, props.step.importExclude || [], props.step.importMap);
+        for (const [key, value] of Object.entries(picked)) {
+          formData.value[key] = value;
         }
       } catch {
         // ignore
@@ -291,6 +291,8 @@ async function handleExport(): Promise<void> {
       if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
       // 被审计领导干部所在单位 = 被审计单位（避免重复字段）
       if (!exportData.auditedLeaderUnit) exportData.auditedLeaderUnit = exportData.auditedUnit || props.projectInfo.auditedTarget;
+      // 模板占位符 auditUnit（审核/复核意见书等）与 auditedUnit 同义
+      if (!exportData.auditUnit) exportData.auditUnit = exportData.auditedUnit || props.projectInfo.auditedTarget;
       if (!exportData.auditProject) exportData.auditProject = props.projectInfo.name;
       if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
     }
@@ -301,6 +303,34 @@ async function handleExport(): Promise<void> {
     if (!exportData.shortText) exportData.shortText = '';
     if (!exportData.mediumText) exportData.mediumText = '';
     if (!exportData.shortContent) exportData.shortContent = '';
+
+    // 将导入链中前序步骤的已保存数据补充进导出数据（仅补缺失键），
+    // 供模板中"无对应表单字段"的占位符引用，如征求意见书模板的
+    // auditOrg/auditStartDate/auditEndDate/documentNumber
+    if (props.step.importFrom && props.step.importFrom.length > 0) {
+      try {
+        const stageRes = await window.electronAPI.stages.getByProjectId(props.projectId);
+        if (stageRes.success && stageRes.data) {
+          for (const srcKey of props.step.importFrom) {
+            const src = (stageRes.data as Array<{ stage: string; dataJson: string }>).find(s => s.stage === srcKey);
+            if (!src || !src.dataJson || src.dataJson === '{}') continue;
+            const parsed = JSON.parse(src.dataJson) as Record<string, string>;
+            mergeImportChainData(exportData, parsed);
+          }
+        }
+      } catch {
+        // 合并失败不阻塞导出（缺失占位符由 validate 兜底提示）
+      }
+    }
+
+    // 送达回证：模板占位符为「{documentName}{documentNumber}」，
+    // 将文书编号以「（编号）」拼接到名称之后，导出为「审计通知书（审（委）办经责通〔2024〕1号）」
+    if (props.step.key === 'delivery_receipt') {
+      const composed = composeDeliveryReceiptFields(exportData.documentName || '', exportData.documentNo || '');
+      exportData.documentName = composed.documentName;
+      exportData.documentNumber = composed.documentNumber;
+      exportData.documentNo = '';
+    }
 
     const validRes = await window.electronAPI.templates.validate(tmpl, exportData);
     if (validRes.success && validRes.data && validRes.data.missing && validRes.data.missing.length > 0) {
@@ -343,11 +373,10 @@ async function handleImport(): Promise<void> {
       const srcData = res.data.find((s: { stage: string }) => s.stage === srcKey);
       if (srcData && srcData.dataJson && srcData.dataJson !== '{}') {
         const parsed = JSON.parse(srcData.dataJson);
-        for (const key of Object.keys(parsed)) {
-          if (formData.value[key] !== undefined && !formData.value[key]) {
-            formData.value[key] = parsed[key];
-            imported++;
-          }
+        const picked = pickImportableFields(parsed, formData.value, props.step.importExclude || [], props.step.importMap);
+        for (const [key, value] of Object.entries(picked)) {
+          formData.value[key] = value;
+          imported++;
         }
       }
     }

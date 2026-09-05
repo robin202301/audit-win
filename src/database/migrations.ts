@@ -1,7 +1,7 @@
 import { Database } from 'sqlite';
 
 /** 当前数据库 Schema 版本号。修改任何表结构后必须 +1，下次启动会自动重建。 */
-const DB_SCHEMA_VERSION = 1;
+const DB_SCHEMA_VERSION = 2;
 
 export async function runMigrations(db: Database): Promise<void> {
   // 确保版本表存在
@@ -90,6 +90,7 @@ async function createAllTables(db: Database): Promise<void> {
       project_name      TEXT    NOT NULL DEFAULT '',
       audited_unit      TEXT    NOT NULL DEFAULT '',
       matter_summary    TEXT    NOT NULL DEFAULT '',
+      summary_text      TEXT    NOT NULL DEFAULT '',
       evidence_content  TEXT    NOT NULL DEFAULT '',
       legal_basis       TEXT    NOT NULL DEFAULT '',
       auditor_name      TEXT    NOT NULL DEFAULT '',

@@ -109,6 +109,12 @@ const isListComponent = computed(() => !!LIST_STAGES[stage]);
 const listComponent = shallowRef(LIST_STAGES[stage] || null);
 
 function goBack(): void {
-  router.push({ name: 'project-detail', params: { id: projectId } });
+  // 携带当前步骤所属阶段，返回项目后定位到对应阶段页签
+  const phase = workflowStep.value?.phase;
+  router.push({
+    name: 'project-detail',
+    params: { id: projectId },
+    query: phase ? { phase: String(phase) } : {},
+  });
 }
 </script>

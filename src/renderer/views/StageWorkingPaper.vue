@@ -56,6 +56,13 @@
             <input v-model="formData.projectName" class="gov-input gov-input-editable" placeholder="请输入项目名称" />
           </div>
           <div class="md:col-span-2">
+            <label class="gov-field-label">引用取证单摘要</label>
+            <select v-model="summarySelect" class="gov-input gov-input-editable" @change="applySummaryReference">
+              <option value="">不引用（手动填写下方审计事项）</option>
+              <option v-for="(opt, i) in evidenceSummaries" :key="i" :value="String(i)">{{ opt.label }}</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
             <label class="gov-field-label">审计（调查）事项</label>
             <textarea v-model="formData.auditMatter" class="gov-input gov-input-editable" rows="2" placeholder="请输入审计事项" />
           </div>
@@ -113,6 +120,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { computeNextIndexNumber, parseSummaryItems } from './paperUtils';
 
 const props = defineProps<{ projectId: number; projectInfo?: { name: string; auditedTarget: string; auditType: string } }>();
 
@@ -138,6 +146,9 @@ const paperList = ref<PaperRow[]>([]);
 const loading = ref(false);
 const showForm = ref(false);
 const editingId = ref<number | null>(null);
+/** 当前项目取证单摘要选项（label 用于展示，content 引用后填入审计事项） */
+const evidenceSummaries = ref<Array<{ label: string; content: string }>>([]);
+const summarySelect = ref('');
 
 const formData = ref({
   indexNumber: '',
@@ -177,6 +188,7 @@ function resetForm(): void {
 
 onMounted(async () => {
   await loadPapers();
+  await loadEvidenceSummaries();
 
   // 检查是否从取证单跳转而来（带预填数据）
   if (route.query.fromEvidence === '1') {
@@ -189,6 +201,8 @@ onMounted(async () => {
     }
     if (route.query.matterIndex) {
       formData.value.indexNumber = String(route.query.matterIndex);
+    } else {
+      formData.value.indexNumber = computeNextIndexNumber(paperList.value.map(p => p.indexNumber));
     }
     showForm.value = true;
   }
@@ -209,7 +223,39 @@ async function loadPapers(): Promise<void> {
 function openForm(): void {
   resetForm();
   editingId.value = null;
+  // 索引号在当前项目内依次递增（不同项目独立计数）
+  formData.value.indexNumber = computeNextIndexNumber(paperList.value.map(p => p.indexNumber));
+  summarySelect.value = '';
   showForm.value = true;
+}
+
+/** 从下拉选项引用取证单摘要 → 填入审计（调查）事项 */
+function applySummaryReference(): void {
+  const idx = Number(summarySelect.value);
+  const opt = evidenceSummaries.value[idx];
+  if (opt) {
+    formData.value.auditMatter = opt.content;
+  }
+}
+
+/** 加载当前项目取证单的审计事项摘要，供底稿下拉引用 */
+async function loadEvidenceSummaries(): Promise<void> {
+  try {
+    const res = await window.electronAPI.evidence.getByProjectId(props.projectId);
+    if (!res.success || !res.data) return;
+    const options: Array<{ label: string; content: string }> = [];
+    (res.data as Array<{ serialNumber?: string; summaryText?: string }>).forEach(ev => {
+      parseSummaryItems(ev.summaryText || '').forEach((content, i) => {
+        const serial = ev.serialNumber || '取证单';
+        const preview = content.length > 20 ? content.slice(0, 20) + '…' : content;
+        options.push({ label: `${serial} · 摘要${i + 1}：${preview}`, content });
+      });
+    });
+    evidenceSummaries.value = options;
+  } catch (e: unknown) {
+    // 摘要加载失败不阻塞底稿表单，仅下拉为空
+    console.error('加载取证单摘要失败：', e);
+  }
 }
 
 function closeForm(): void {
@@ -219,6 +265,7 @@ function closeForm(): void {
 
 function editPaper(item: PaperRow): void {
   editingId.value = item.id;
+  summarySelect.value = '';
   formData.value = {
     indexNumber: item.indexNumber,
     projectName: item.projectName,
@@ -277,7 +324,12 @@ async function exportPaper(item: PaperRow): Promise<void> {
   try {
     const res = await window.electronAPI.documents.openSaveDialog(`审计底稿_${item.indexNumber}.docx`);
     if (res.success && res.data) {
-      const genRes = await window.electronAPI.documents.generate('16审计工作底稿', { ...item }, res.data.filePath);
+      // 模板占位符 auditedUnit（被审计单位）不在底稿表单字段中，从项目信息引用
+      const genRes = await window.electronAPI.documents.generate(
+        '16审计工作底稿',
+        { ...item, auditedUnit: props.projectInfo?.auditedTarget || '' },
+        res.data.filePath
+      );
       if (genRes.success) {
         alert('文档已导出：' + res.data!.filePath);
       } else {

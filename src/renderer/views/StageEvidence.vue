@@ -87,6 +87,29 @@
           />
         </div>
       </div>
+
+      <!-- 审计事项摘要（按序号添加，导出至取证单「摘要」栏，供底稿引用） -->
+      <div class="gov-matters-section">
+        <div class="gov-matters-header">
+          <h3 class="gov-matters-title">审计（调查）事项摘要</h3>
+          <button class="gov-btn-add-matter" @click="addSummaryItem">+ 添加摘要</button>
+        </div>
+        <div v-if="summaryItems.length === 0" class="gov-matters-empty">
+          暂无摘要，请点击上方"添加摘要"开始录入
+        </div>
+        <div v-for="(item, index) in summaryItems" :key="index" class="gov-matter-item">
+          <div class="gov-matter-item-header">
+            <span class="gov-matter-item-number">摘要 {{ index + 1 }}</span>
+            <button class="gov-btn-remove-matter" @click="removeSummaryItem(index)" :disabled="summaryItems.length <= 1">删除</button>
+          </div>
+          <textarea
+            v-model="item.content"
+            class="gov-input gov-input-editable gov-matter-textarea"
+            rows="3"
+            :placeholder="'请输入第 ' + (index + 1) + ' 条审计（调查）事项摘要'"
+          />
+        </div>
+      </div>
     </div>
 
     <!-- 只读态 -->
@@ -148,6 +171,20 @@
           </div>
         </div>
       </div>
+
+      <!-- 审计事项摘要（只读） -->
+      <div class="gov-matters-section">
+        <h3 class="gov-matters-title">审计（调查）事项摘要</h3>
+        <div v-if="summaryItems.length === 0" class="gov-matters-empty">
+          暂无摘要
+        </div>
+        <div v-for="(item, index) in summaryItems" :key="index" class="gov-matter-item-readonly">
+          <div class="gov-matter-item-header">
+            <span class="gov-matter-item-number">摘要 {{ index + 1 }}</span>
+          </div>
+          <div class="gov-input gov-input-display gov-matter-textarea-readonly">{{ item.content || '（未填写）' }}</div>
+        </div>
+      </div>
     </div>
 
     <div v-if="saveError" class="gov-error-msg">{{ saveError }}</div>
@@ -158,6 +195,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { parseSummaryItems } from './paperUtils';
 
 const props = defineProps<{
   projectId: number;
@@ -183,6 +221,7 @@ const formData = ref({
 });
 
 const matters = ref<MatterItem[]>([{ content: '' }]);
+const summaryItems = ref<MatterItem[]>([{ content: '' }]);
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 const saveSuccess = ref(false);
@@ -220,6 +259,11 @@ onMounted(async () => {
           providerSignature: item.providerSignature || '',
           feedbackDeadline: item.feedbackDeadline || '',
         };
+        // 解析事项摘要列表（兼容旧版纯文本数据）
+        summaryItems.value = parseSummaryItems(item.summaryText || '').map(content => ({ content }));
+        if (summaryItems.value.length === 0) {
+          summaryItems.value = [{ content: '' }];
+        }
         // 解析事项列表
         if (item.matterSummary) {
           try {
@@ -241,6 +285,7 @@ onMounted(async () => {
       }
       // 仅当存在有意义的内容时才进入只读态（防止误保存空数据导致页面锁定）
       const hasContent = matters.value.some(m => m.content?.trim()) ||
+        summaryItems.value.some(m => m.content?.trim()) ||
         Object.entries(formData.value).some(([k, v]) =>
           k !== 'projectName' && k !== 'auditedUnit' && v && v.trim() !== ''
         );
@@ -292,6 +337,15 @@ function removeMatter(index: number): void {
   matters.value.splice(index, 1);
 }
 
+function addSummaryItem(): void {
+  summaryItems.value.push({ content: '' });
+}
+
+function removeSummaryItem(index: number): void {
+  if (summaryItems.value.length <= 1) return;
+  summaryItems.value.splice(index, 1);
+}
+
 function formatDateToChinese(dateStr: string): string {
   if (!dateStr) return '';
   try {
@@ -311,6 +365,14 @@ function buildAuditedItems(): string {
     .join('\n');
 }
 
+/** 将摘要列表拼接为导出文本（每条一行，渲染至模板「摘要」栏） */
+function buildSummaryText(): string {
+  return summaryItems.value
+    .filter(m => m.content && m.content.trim())
+    .map(m => m.content.trim())
+    .join('\n');
+}
+
 async function handleSave(): Promise<void> {
   saving.value = true;
   saveError.value = null;
@@ -319,6 +381,7 @@ async function handleSave(): Promise<void> {
       projectId: props.projectId,
       ...formData.value,
       matterSummary: JSON.stringify(matters.value),
+      summaryText: JSON.stringify(summaryItems.value),
     };
 
     let res;
@@ -354,6 +417,7 @@ async function handleExport(): Promise<void> {
       serialNumber: formData.value.serialNumber || '',
       projectName: formData.value.projectName || '',
       auditedUnit: formData.value.auditedUnit || '',
+      matterSummary: buildSummaryText(),
       auditedItems: buildAuditedItems(),
       legalBasis: formData.value.legalBasis || '',
       auditorName: formData.value.auditorName || '',

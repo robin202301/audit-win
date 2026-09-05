@@ -67,12 +67,14 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useProjectStore } from '@stores/project';
 import { WORKFLOW_STEPS } from '@shared/types';
+import { parsePhaseQuery } from './stages/phaseNav';
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
+const route = useRoute();
 const store = useProjectStore();
 
 // 按阶段分组（根据审计类型过滤）
@@ -91,6 +93,11 @@ const phases = computed(() => {
 const currentPhase = ref(1);
 
 onMounted(async () => {
+  // 从阶段页返回时定位到该步骤所属阶段页签（非法值回落到默认阶段 1）
+  const phase = parsePhaseQuery(route.query.phase);
+  if (phase !== null) {
+    currentPhase.value = phase;
+  }
   await store.loadProject(Number(props.id));
   await store.loadStages(Number(props.id));
 });

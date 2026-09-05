@@ -21,6 +21,7 @@ export class EvidenceRepo {
     projectName?: string;
     auditedUnit?: string;
     matterSummary?: string;
+    summaryText?: string;
     evidenceContent?: string;
     legalBasis?: string;
     auditorName?: string;
@@ -31,13 +32,14 @@ export class EvidenceRepo {
     attachmentPaths?: string;
   }): Promise<number> {
     const result = await this.db.run(
-      `INSERT INTO evidence_items (project_id, serial_number, project_name, audited_unit, matter_summary, evidence_content, legal_basis, auditor_name, compile_date, provider_opinion, provider_signature, feedback_deadline, attachment_paths)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO evidence_items (project_id, serial_number, project_name, audited_unit, matter_summary, summary_text, evidence_content, legal_basis, auditor_name, compile_date, provider_opinion, provider_signature, feedback_deadline, attachment_paths)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       data.projectId,
       data.serialNumber || '',
       data.projectName || '',
       data.auditedUnit || '',
       data.matterSummary || '',
+      data.summaryText || '',
       data.evidenceContent || '',
       data.legalBasis || '',
       data.auditorName || '',
