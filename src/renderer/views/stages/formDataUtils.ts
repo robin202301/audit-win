@@ -39,16 +39,32 @@ export function pickImportableFields(
  * 仅填充导出数据中不存在的键（undefined），绝不覆盖已有值，
  * 用于模板中"无对应表单字段"的占位符（如征求意见书模板的
  * auditOrg/auditStartDate/documentNumber 等直接引用前序数据）。
+ * excludedKeys：本次合并跳过的键（不同语义同名键，防抢先补入）。
  */
 export function mergeImportChainData(
   exportData: Record<string, string>,
-  parsed: Record<string, string>
+  parsed: Record<string, string>,
+  excludedKeys: string[] = []
 ): void {
+  const excluded = new Set(excludedKeys);
   for (const [key, value] of Object.entries(parsed)) {
+    if (excluded.has(key)) continue;
     if (exportData[key] === undefined) {
       exportData[key] = value;
     }
   }
+}
+
+/**
+ * 计算导出合并时对某个前序来源应排除的键。
+ * 规则：征求意见书（report_consultation）的文号只取通知书"通"字号，
+ * 报告文号（"报"字号）语义不同，不得抢先补入。
+ */
+export function computeMergeExcludedKeys(stepKey: string, srcKey: string): string[] {
+  if (stepKey === 'report_consultation' && srcKey !== 'notice') {
+    return ['documentNumber'];
+  }
+  return [];
 }
 
 /**

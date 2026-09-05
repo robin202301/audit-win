@@ -3,3 +3,6 @@ dist/
 release/
 *.node
 .DS_Store
+
+# Claude 子代理内部状态
+.claude/agent-memory/

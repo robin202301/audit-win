@@ -90,7 +90,7 @@ import { computed, nextTick, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 import { STAGE_FORM_CONFIGS } from './stageConfigs';
 import { NOTICE_TEMPLATES } from '@shared/types';
-import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData } from './formDataUtils';
+import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData, computeMergeExcludedKeys } from './formDataUtils';
 
 const props = defineProps<{
   projectId: number;
@@ -131,15 +131,6 @@ for (const field of config.fields) {
 }
 
 onMounted(async () => {
-  // 从项目信息自动填充
-  if (props.projectInfo && config.autoFillFromProject) {
-    for (const [formKey, projectKey] of Object.entries(config.autoFillFromProject)) {
-      if (!formData.value[formKey] && props.projectInfo) {
-        formData.value[formKey] = (props.projectInfo as Record<string, string>)[projectKey] || '';
-      }
-    }
-  }
-
   // 加载已保存的阶段数据
   try {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);
@@ -213,6 +204,18 @@ onMounted(async () => {
     }
   } catch {
     // ignore
+  }
+
+  // 从项目信息自动填充空字段（必须置于加载之后：
+  // 前序步骤导入与已保存数据优先，项目信息仅兜底——
+  // 若提前填充，项目初始值会预占字段，
+  // 通知书中修正后的被审计单位/项目名称等无法同步到下游）
+  if (props.projectInfo && config.autoFillFromProject) {
+    for (const [formKey, projectKey] of Object.entries(config.autoFillFromProject)) {
+      if (!formData.value[formKey] && props.projectInfo) {
+        formData.value[formKey] = (props.projectInfo as Record<string, string>)[projectKey] || '';
+      }
+    }
   }
 });
 
@@ -315,7 +318,8 @@ async function handleExport(): Promise<void> {
             const src = (stageRes.data as Array<{ stage: string; dataJson: string }>).find(s => s.stage === srcKey);
             if (!src || !src.dataJson || src.dataJson === '{}') continue;
             const parsed = JSON.parse(src.dataJson) as Record<string, string>;
-            mergeImportChainData(exportData, parsed);
+            // 按步骤+来源计算应排除的键（如征求意见书文号只取通知书）
+            mergeImportChainData(exportData, parsed, computeMergeExcludedKeys(props.step.key, srcKey));
           }
         }
       } catch {

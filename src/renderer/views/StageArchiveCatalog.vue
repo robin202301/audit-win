@@ -340,10 +340,10 @@ function generateVolume9(targetName: string, auditedTarget: string): ArchiveEntr
     entries.push(dataRow(String(seq), '', '审计局', `科右前旗审计局关于印发《${targetName}审计工作方案》的通知`, '', ''));
   });
 
-  // 审计通知书
+  // 审计通知书（被审计单位优先取通知书中的修正值，项目初始值兜底）
   addIfCompleted('notice', (data: Record<string, string>) => {
     seq++;
-    entries.push(dataRow(String(seq), '', '审计局', `科右前旗审计局对${auditedTarget}的通知`, data.issueDate || '', ''));
+    entries.push(dataRow(String(seq), '', '审计局', `科右前旗审计局对${data.auditedUnit || auditedTarget}的通知`, data.issueDate || '', ''));
   });
 
   // 审计通知书送达回证

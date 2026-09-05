@@ -5,7 +5,7 @@
  * 3. mergeImportChainData —— 导出时补充模板专属占位符数据
  */
 import { describe, it, expect } from 'vitest';
-import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData } from '../formDataUtils';
+import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData, computeMergeExcludedKeys } from '../formDataUtils';
 
 describe('pickImportableFields 前序数据导入', () => {
   it('导入目标存在且为空的同名字段', () => {
@@ -124,5 +124,29 @@ describe('mergeImportChainData 导出数据补充', () => {
     // 已有键（即使为空串）不被覆盖
     expect(exportData.projectName).toBe('项目A');
     expect(exportData.auditedUnit).toBe('');
+  });
+
+  it('excludedKeys 中的键不参与合并（其余照常补入）', () => {
+    const exportData: Record<string, string> = {};
+    const parsed = { documentNumber: '报〔2026〕3号', auditOrg: '科右前旗审计局' };
+    mergeImportChainData(exportData, parsed, ['documentNumber']);
+    expect(exportData.documentNumber).toBeUndefined();
+    expect(exportData.auditOrg).toBe('科右前旗审计局');
+  });
+});
+
+describe('computeMergeExcludedKeys 文号来源防抢先', () => {
+  it('征求意见书：非通知书来源排除 documentNumber（报告"报"字号不得抢先）', () => {
+    expect(computeMergeExcludedKeys('report_consultation', 'report')).toEqual(['documentNumber']);
+    expect(computeMergeExcludedKeys('report_consultation', 'external_report')).toEqual(['documentNumber']);
+  });
+
+  it('征求意见书：通知书来源不排除（"通"字号为准）', () => {
+    expect(computeMergeExcludedKeys('report_consultation', 'notice')).toEqual([]);
+  });
+
+  it('其他步骤不排除任何键', () => {
+    expect(computeMergeExcludedKeys('audit_opinion', 'report_consultation')).toEqual([]);
+    expect(computeMergeExcludedKeys('report', 'notice')).toEqual([]);
   });
 });

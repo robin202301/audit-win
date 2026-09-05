@@ -196,6 +196,7 @@
 import { nextTick, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { parseSummaryItems } from './paperUtils';
+import { pickImportableFields } from './stages/formDataUtils';
 
 const props = defineProps<{
   projectId: number;
@@ -234,10 +235,30 @@ const paperStatus = ref<Record<number, boolean>>({});
 const evidenceId = ref<number | null>(null);
 
 onMounted(async () => {
-  // 自动填充项目信息
+  // 从前序步骤（通知书、实施方案）引用同名字段（仅填空值），
+  // 通知书中修正后的被审计单位/项目名称优先于项目初始信息
+  try {
+    const res = await window.electronAPI.stages.getByProjectId(props.projectId);
+    if (res.success && res.data) {
+      for (const srcKey of ['notice', 'plan']) {
+        const src = (res.data as Array<{ stage: string; dataJson: string }>).find(s => s.stage === srcKey);
+        if (!src || !src.dataJson || src.dataJson === '{}') continue;
+        const parsed = JSON.parse(src.dataJson) as Record<string, string>;
+        const picked = pickImportableFields(parsed, formData.value);
+        for (const [key, value] of Object.entries(picked)) {
+          formData.value[key] = value;
+        }
+      }
+    }
+  } catch (e) {
+    // 前序导入失败不阻塞表单（仅缺自动填充）
+    console.error('取证单从前序步骤导入失败：', e);
+  }
+
+  // 项目信息兜底（仅填空值，不与通知书内容冲突）
   if (props.projectInfo) {
-    formData.value.projectName = props.projectInfo.name;
-    formData.value.auditedUnit = props.projectInfo.auditedTarget;
+    if (!formData.value.projectName) formData.value.projectName = props.projectInfo.name;
+    if (!formData.value.auditedUnit) formData.value.auditedUnit = props.projectInfo.auditedTarget;
   }
 
   // 加载已保存的取证单
@@ -250,8 +271,8 @@ onMounted(async () => {
       if (!formTouched.value) {
         formData.value = {
           serialNumber: item.serialNumber || '',
-          projectName: item.projectName || props.projectInfo?.name || '',
-          auditedUnit: item.auditedUnit || props.projectInfo?.auditedTarget || '',
+          projectName: item.projectName || formData.value.projectName || '',
+          auditedUnit: item.auditedUnit || formData.value.auditedUnit || '',
           legalBasis: item.legalBasis || '',
           auditorName: item.auditorName || '',
           compileDate: item.compileDate || '',

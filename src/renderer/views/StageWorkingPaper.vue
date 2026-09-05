@@ -169,10 +169,30 @@ const formTitle = computed(() => {
   return editingId.value ? '编辑底稿' : '新增底稿';
 });
 
+/** 通知书中的项目名称/被审计单位（通知书修正值优先于项目初始信息） */
+const noticeProjectName = ref('');
+const noticeAuditedUnit = ref('');
+
+/** 加载通知书保存的项目名称/被审计单位，供表单与导出兜底引用 */
+async function loadNoticeFields(): Promise<void> {
+  try {
+    const res = await window.electronAPI.stages.getByProjectId(props.projectId);
+    if (!res.success || !res.data) return;
+    const notice = (res.data as Array<{ stage: string; dataJson: string }>).find(s => s.stage === 'notice');
+    if (!notice || !notice.dataJson || notice.dataJson === '{}') return;
+    const parsed = JSON.parse(notice.dataJson) as Record<string, string>;
+    noticeProjectName.value = parsed.projectName || '';
+    noticeAuditedUnit.value = parsed.auditedUnit || '';
+  } catch (e) {
+    // 通知书读取失败不阻塞底稿表单（回落项目信息）
+    console.error('底稿读取通知书数据失败：', e);
+  }
+}
+
 function resetForm(): void {
   formData.value = {
     indexNumber: '',
-    projectName: props.projectInfo?.name || '',
+    projectName: noticeProjectName.value || props.projectInfo?.name || '',
     auditMatter: '',
     auditorName: '',
     compileDate: '',
@@ -189,6 +209,7 @@ function resetForm(): void {
 onMounted(async () => {
   await loadPapers();
   await loadEvidenceSummaries();
+  await loadNoticeFields();
 
   // 检查是否从取证单跳转而来（带预填数据）
   if (route.query.fromEvidence === '1') {
@@ -324,10 +345,11 @@ async function exportPaper(item: PaperRow): Promise<void> {
   try {
     const res = await window.electronAPI.documents.openSaveDialog(`审计底稿_${item.indexNumber}.docx`);
     if (res.success && res.data) {
-      // 模板占位符 auditedUnit（被审计单位）不在底稿表单字段中，从项目信息引用
+      // 模板占位符 auditedUnit（被审计单位）不在底稿表单字段中，
+      // 优先取通知书中的被审计单位（修正值），项目信息兜底
       const genRes = await window.electronAPI.documents.generate(
         '16审计工作底稿',
-        { ...item, auditedUnit: props.projectInfo?.auditedTarget || '' },
+        { ...item, auditedUnit: noticeAuditedUnit.value || props.projectInfo?.auditedTarget || '' },
         res.data.filePath
       );
       if (genRes.success) {
