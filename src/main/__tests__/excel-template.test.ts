@@ -12,6 +12,7 @@ import {
   replaceExcelPlaceholders,
   renderExcelWorksheet,
   applyTaskListCellMapping,
+  applyTaskListCompletionCellMapping,
   sanitizeWorkbookForWrite,
 } from '../services/excelTemplate';
 
@@ -200,6 +201,57 @@ describe('12任务清单 单元格映射', () => {
       expect(outWs['A2']?.v).toBe('项目名称：导出项目');
       expect(outWs['B6']?.v).toBe('任务内容');
       expect(readBack.SheetNames).toEqual(['Sheet1']);
+    } finally {
+      if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+    }
+  });
+});
+
+describe('19任务清单完成情况 单元格映射', () => {
+  it('将项目名称、填报日期、总体情况写入既有单元格，表头保持不变', () => {
+    const ws = readFirstSheet('19任务清单完成情况.xls');
+    applyTaskListCompletionCellMapping(ws, {
+      projectName: '测试项目',
+      completionContent: '各审计事项均已完成，问题已整改。',
+      compileDate: '2026年10月22日',
+    });
+    expect(ws['A4']?.v).toBe('项目名称：测试项目        填报日期：2026年10月22日');
+    expect(ws['A5']?.v).toBe('总体情况：各审计事项均已完成，问题已整改。');
+    expect(ws['A1']?.v).toBe('附件3');
+    expect(ws['A2']?.v).toBe('审计任务清单完成情况');
+    expect(ws['A6']?.v).toBe('序号');
+  });
+
+  it('空数据不写入 undefined，标签仍保留', () => {
+    const ws = readFirstSheet('19任务清单完成情况.xls');
+    applyTaskListCompletionCellMapping(ws, {});
+    expect(ws['A4']?.v).toBe('项目名称：');
+    expect(ws['A5']?.v).toBe('总体情况：');
+  });
+
+  it('仅有填报日期时不拼接空项目名后的多余空格', () => {
+    const ws = readFirstSheet('19任务清单完成情况.xls');
+    applyTaskListCompletionCellMapping(ws, { compileDate: '2026年10月22日' });
+    expect(ws['A4']?.v).toBe('项目名称：        填报日期：2026年10月22日');
+  });
+
+  it('写回 .xls 后可读回映射结果', () => {
+    const ws = readFirstSheet('19任务清单完成情况.xls');
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+    applyTaskListCompletionCellMapping(ws, {
+      projectName: '导出项目',
+      completionContent: '完成情况内容',
+      compileDate: '2026年10月22日',
+    });
+    sanitizeWorkbookForWrite(wb);
+    const tmpFile = path.join(os.tmpdir(), `task-list-completion-test-${Date.now()}.xls`);
+    try {
+      XLSX.writeFile(wb, tmpFile);
+      const readBack = XLSX.readFile(tmpFile);
+      const outWs = readBack.Sheets[readBack.SheetNames[0]];
+      expect(outWs['A4']?.v).toBe('项目名称：导出项目        填报日期：2026年10月22日');
+      expect(outWs['A5']?.v).toBe('总体情况：完成情况内容');
     } finally {
       if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
     }

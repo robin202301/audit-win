@@ -22,8 +22,18 @@
           标记完成
         </button>
         <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
-        <button class="gov-btn-export" @click="handleExport">导出文档</button>
+        <button
+          class="gov-btn-export"
+          :disabled="exportState.disabled"
+          :title="exportState.hint"
+          @click="handleExport"
+        >导出文档</button>
       </div>
+    </div>
+
+    <!-- 无模板时给出明确说明，避免点击后才提示 -->
+    <div v-if="exportState.disabled" class="gov-export-unavailable">
+      {{ exportState.hint }}
     </div>
 
     <!-- 数据引用提示 -->
@@ -34,8 +44,8 @@
       </span>
     </div>
 
-    <!-- 纯导出页面提示 -->
-    <div v-if="config.fields.length === 0" class="gov-export-hint">
+    <!-- 纯导出页面提示（仅在有导出模板时展示） -->
+    <div v-if="config.fields.length === 0 && !exportState.disabled" class="gov-export-hint">
       <svg class="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
       </svg>
@@ -90,7 +100,7 @@ import { computed, nextTick, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 import { STAGE_FORM_CONFIGS } from './stageConfigs';
 import { NOTICE_TEMPLATES } from '@shared/types';
-import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData, computeMergeExcludedKeys, formatDateToChinese } from './formDataUtils';
+import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData, computeMergeExcludedKeys, formatDateToChinese, getExportButtonState } from './formDataUtils';
 
 const props = defineProps<{
   projectId: number;
@@ -108,6 +118,9 @@ const activeTemplate = computed(() => {
   }
   return config.template;
 });
+
+// 无模板步骤置灰导出按钮，避免用户点击后才看到"暂无导出模板"
+const exportState = computed(() => getExportButtonState(activeTemplate.value, '该步骤'));
 
 // 根据审计类型过滤字段
 const visibleFields = computed(() => {
@@ -264,8 +277,8 @@ function doEdit(): void {
 
 async function handleExport(): Promise<void> {
   const tmpl = activeTemplate.value;
-  if (!tmpl) {
-    alert('该步骤暂无导出模板');
+  if (exportState.value.disabled) {
+    alert(exportState.value.hint);
     return;
   }
   try {
@@ -639,9 +652,16 @@ async function handleMarkComplete(): Promise<void> {
   box-shadow: 0 2px 4px rgba(139, 0, 0, 0.2);
 }
 
-.gov-btn-export:hover {
+.gov-btn-export:hover:not(:disabled) {
   background: linear-gradient(135deg, #a00000, #c42828);
   transform: translateY(-1px);
+}
+
+.gov-btn-export:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .gov-btn-complete {
@@ -670,6 +690,16 @@ async function handleMarkComplete(): Promise<void> {
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
+}
+
+.gov-export-unavailable {
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 .gov-import-hint {

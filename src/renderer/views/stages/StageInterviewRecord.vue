@@ -10,8 +10,18 @@
         <button v-if="activeTabConfig.fields.length > 0 && isEditing" class="gov-btn-primary" @click="handleSave">
           {{ saving ? '保存中...' : '保存' }}
         </button>
-        <button class="gov-btn-export" @click="handleExport">导出文档</button>
+        <button
+          class="gov-btn-export"
+          :disabled="exportState.disabled"
+          :title="exportState.hint"
+          @click="handleExport"
+        >导出文档</button>
       </div>
+    </div>
+
+    <!-- 无模板时给出明确说明，避免误以为导出功能可用 -->
+    <div v-if="exportState.disabled" class="gov-export-unavailable mb-3">
+      {{ exportState.hint }}
     </div>
 
     <!-- Tab 页签 -->
@@ -83,7 +93,7 @@ import { computed, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 import { STAGE_FORM_CONFIGS } from './stageConfigs';
 import type { InterviewTabConfig } from './stageConfigs';
-import { formatDateToChinese } from './formDataUtils';
+import { formatDateToChinese, getExportButtonState, importTabDataFromStages } from './formDataUtils';
 
 import { WORKFLOW_STEPS } from '@shared/types';
 
@@ -112,6 +122,10 @@ const formTouched = ref(false);  // 用户是否已触碰表单（防止异步�
 const allTabData = ref<Record<string, Record<string, string>>>({});
 
 const activeTabConfig = computed(() => config.tabs!.find(t => t.key === activeTab.value) || config.tabs![0]);
+const noticeFields = ref<Record<string, string>>({});
+const exportState = computed(() =>
+  getExportButtonState(activeTabConfig.value.template, `「${activeTabConfig.value.label}」页签`)
+);
 
 function initFormFields(tab: InterviewTabConfig): void {
   const data: Record<string, string> = {};
@@ -147,56 +161,43 @@ onMounted(async () => {
   }
   formData.value = { ...allTabData.value[activeTab.value] };
 
-  // 从项目信息自动填充
-  if (props.projectInfo) {
+  // 按页签配置从前序步骤导入（来源、映射、排除项均由配置声明）
+  await importFromPreviousStages();
+
+  // 加载已保存的数据（其优先级高于自动导入）
+  await loadSavedData();
+
+  // 项目信息仅作为空字段兜底，避免覆盖导入值或用户输入
+  if (props.projectInfo && !formTouched.value) {
     for (const tab of config.tabs!) {
-      if (tab.autoFillFromProject) {
-        for (const [formKey, projectKey] of Object.entries(tab.autoFillFromProject)) {
-          if (!allTabData.value[tab.key][formKey] && props.projectInfo) {
-            allTabData.value[tab.key][formKey] = (props.projectInfo as Record<string, string>)[projectKey] || '';
-          }
+      if (!tab.autoFillFromProject) continue;
+      for (const [formKey, projectKey] of Object.entries(tab.autoFillFromProject)) {
+        if (!allTabData.value[tab.key][formKey]) {
+          allTabData.value[tab.key][formKey] = (props.projectInfo as Record<string, string>)[projectKey] || '';
         }
       }
     }
     formData.value = { ...allTabData.value[activeTab.value] };
   }
-
-  // 从 notice 阶段导入数据
-  await importFromNotice();
-
-  // 加载已保存的数据
-  await loadSavedData();
 });
 
-async function importFromNotice(): Promise<void> {
+async function importFromPreviousStages(): Promise<void> {
   try {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);
     if (!res.success || !res.data) return;
-    const noticeData = res.data.find((s: { stage: string }) => s.stage === 'notice');
-    if (!noticeData || !noticeData.dataJson || noticeData.dataJson === '{}') return;
-    const noticeParsed = JSON.parse(noticeData.dataJson);
-
-    for (const tab of config.tabs!) {
-      const data = allTabData.value[tab.key];
-      // 自动填充同名字段
-      for (const field of tab.fields) {
-        if (!data[field.key] && noticeParsed[field.key]) {
-          data[field.key] = noticeParsed[field.key];
-        }
-      }
-      // 自动填充特定映射：被审计领导干部姓名 → 述职人、被测评人
-      if (noticeParsed.auditedLeaderName) {
-        if (data.reporterName !== undefined && !data.reporterName) {
-          data.reporterName = noticeParsed.auditedLeaderName;
-        }
-        if (data.assessedLeaderName !== undefined && !data.assessedLeaderName) {
-          data.assessedLeaderName = noticeParsed.auditedLeaderName;
-        }
-      }
-    }
+    // 异步返回时用户可能已开始填写，此时不得覆盖输入
+    if (formTouched.value) return;
+    const result = importTabDataFromStages(
+      config.tabs!,
+      allTabData.value,
+      res.data as Array<{ stage: string; dataJson?: string }>
+    );
+    allTabData.value = result.tabData;
+    noticeFields.value = result.noticeFields;
     formData.value = { ...allTabData.value[activeTab.value] };
-  } catch {
-    // ignore
+  } catch (error) {
+    // 导入失败不阻塞页面，保留空表单并记录日志
+    console.error('导入前序步骤数据失败：', error);
   }
 }
 
@@ -282,8 +283,8 @@ function doEdit(): void {
 
 async function handleExport(): Promise<void> {
   const tab = activeTabConfig.value;
-  if (!tab.template) {
-    alert('当前页签暂无导出模板');
+  if (exportState.value.disabled) {
+    alert(exportState.value.hint);
     return;
   }
   allTabData.value[activeTab.value] = { ...formData.value };
@@ -297,28 +298,16 @@ async function handleExport(): Promise<void> {
       exportData[field.key] = field.type === 'date' ? formatDateToChinese(value) : value;
     }
 
-    // 从通知书自动引用 auditedLeaderName（**同志）
-    try {
-      const stageRes = await window.electronAPI.stages.getByProjectId(props.projectId);
-      if (stageRes.success && stageRes.data) {
-        const noticeData = stageRes.data.find((s: { stage: string }) => s.stage === 'notice');
-        if (noticeData && noticeData.dataJson && noticeData.dataJson !== '{}') {
-          const parsed = JSON.parse(noticeData.dataJson);
-          if (parsed.auditedLeaderName) {
-            exportData.auditedLeaderName = parsed.auditedLeaderName;
-          }
-        }
-      }
-    } catch { /* ignore */ }
+    // 纯导出页签（民主测评表等）的占位符直接引用通知书快照；
+    // 快照在页面初始化时由 importFrom 配置统一采集
+    if (noticeFields.value.auditedLeaderName) {
+      exportData.auditedLeaderName = noticeFields.value.auditedLeaderName;
+    }
 
     if (props.projectInfo) {
       if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
       if (!exportData.auditedUnit) exportData.auditedUnit = props.projectInfo.auditedTarget;
     }
-    exportData.text = '';
-    exportData.name = '';
-    exportData.val = '';
-    exportData.content = '';
 
     const res = await window.electronAPI.documents.openSaveDialog(tab.exportFile);
     if (res.success && res.data) {
@@ -427,6 +416,12 @@ function getStepLabel(key: string): string {
   font-size: 13px;
   cursor: pointer;
 }
+.gov-btn-export:disabled {
+  color: #9ca3af;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+}
 .gov-btn-edit {
   padding: 6px 16px;
   background: #fff7ed;
@@ -467,5 +462,13 @@ function getStepLabel(key: string): string {
   color: #92400e;
   display: flex;
   align-items: flex-start;
+}
+.gov-export-unavailable {
+  padding: 6px 12px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #6b7280;
 }
 </style>

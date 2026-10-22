@@ -20,6 +20,10 @@ export interface InterviewTabConfig {
   defaultValues?: Record<string, string>;
   /** 自动从前序步骤导入同名字段 */
   importFrom?: string[];
+  /** 导入时排除的同名字段（防止不同语义字段串值） */
+  importExclude?: string[];
+  /** 导入时字段键名映射：本页签键 -> 前序步骤键 */
+  importMap?: Record<string, string>;
 }
 
 export interface StageFormConfig {
@@ -42,7 +46,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     defaultValues: {
       auditCommitteeOffice: '中共科右前旗审计委员会办公室',
       auditOrg: '科右前旗审计局',
-      content: `审计"八不准"工作纪律`,
+      content: `审计“八不准”工作纪律`,
     },
     fields: [
       { key: 'auditCommitteeOffice', label: '审计委员会办公室', fullSpan: true, placeholder: '例：中共科右前旗委审计委员会办公室', auditTypes: ['经济责任审计'] },
@@ -262,7 +266,13 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
         template: '15述职报告提纲',
         exportFile: '述职报告提纲.docx',
         importFrom: ['notice'],
-        autoFillFromProject: { reporterName: 'auditedLeaderName' },
+        // 述职人/单位/职务来自通知书，键名不同，通过 importMap 映射；
+        // 项目信息仅有项目名与被审计单位，不能提供领导干部姓名
+        importMap: {
+          reporterName: 'auditedLeaderName',
+          unitName: 'auditedLeaderUnit',
+          positionTitle: 'auditedLeaderPosition',
+        },
         fields: [
           { key: 'reporterName', label: '述职人姓名', placeholder: '自动从通知书引用被审计领导干部姓名' },
           { key: 'tenureStartYear', label: '任职起始年' },
@@ -492,10 +502,6 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'reportContent', label: '报告内容', type: 'textarea', rows: 12, fullSpan: true, placeholder: '对外发布的完整报告内容' },
       { key: 'issueOrg', label: '发文机关' },
       { key: 'issuerSignature', label: '签发人签名' },
-      { key: 'content', label: '正文内容', type: 'textarea', rows: 8, fullSpan: true },
-      { key: 'text', label: '描述文本', type: 'textarea', rows: 3, fullSpan: true },
-      { key: 'name', label: '人员姓名' },
-      { key: 'val', label: '编号/数值' },
     ],
   },
   audit_decision: {

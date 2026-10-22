@@ -7,6 +7,7 @@ import {
   renderExcelWorksheet,
   sanitizeWorkbookForWrite,
   applyTaskListCellMapping,
+  applyTaskListCompletionCellMapping,
 } from './excelTemplate';
 
 function getTemplateBasePath(): string {
@@ -111,6 +112,10 @@ export async function generateExcel(
   // 避免改写模板导致字体/边框等样式丢失
   if (templateName === '12任务清单') {
     applyTaskListCellMapping(ws, data);
+  }
+  // 任务清单完成情况同为 BIFF8 模板，按坐标把表单内容写入答案区
+  if (templateName === '19任务清单完成情况') {
+    applyTaskListCompletionCellMapping(ws, data);
   }
 
   // .xls 写回前清空文档属性，避免 SheetJS 因不支持的属性类型抛错

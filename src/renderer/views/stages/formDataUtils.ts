@@ -83,6 +83,102 @@ export function resolveEditorInitialContent(
   return (templateText || '').replace(/\{content\}/g, '');
 }
 
+/** 导出按钮状态：无模板时置灰并给出中文说明，避免点击后才提示 */
+export interface ExportButtonState {
+  disabled: boolean;
+  hint: string;
+}
+
+export function getExportButtonState(
+  templateName: string | null | undefined,
+  scopeLabel = '该步骤'
+): ExportButtonState {
+  if (templateName && templateName.trim() !== '') {
+    return { disabled: false, hint: '' };
+  }
+  return {
+    disabled: true,
+    hint: `${scopeLabel}暂无导出模板，填写内容仅在本系统中保存`,
+  };
+}
+
+/** 页签级导入所需的最小配置（与 InterviewTabConfig 结构兼容） */
+export interface TabImportConfig {
+  key: string;
+  fields: Array<{ key: string }>;
+  importFrom?: string[];
+  importExclude?: string[];
+  importMap?: Record<string, string>;
+}
+
+export interface TabImportResult {
+  tabData: Record<string, Record<string, string>>;
+  noticeFields: Record<string, string>;
+  importedCount: number;
+}
+
+/**
+ * 按页签配置从前序步骤导入字段：
+ * - 只处理页签显式声明的 importFrom，不再硬编码某个来源；
+ * - 复用 pickImportableFields，仅填空值、支持 importMap/importExclude；
+ * - 同时记录通知书字段快照，供纯导出页签（如民主测评表）在导出时引用。
+ */
+export function importTabDataFromStages(
+  tabs: TabImportConfig[],
+  currentData: Record<string, Record<string, string>>,
+  stages: Array<{ stage: string; dataJson?: string }>
+): TabImportResult {
+  const tabData: Record<string, Record<string, string>> = {};
+  for (const tab of tabs) {
+    // 以字段定义初始化空值，确保导入目标形状完整；
+    // 再覆盖已有数据，保留用户已填写内容与历史扩展键
+    const initialized: Record<string, string> = {};
+    for (const field of tab.fields) initialized[field.key] = '';
+    tabData[tab.key] = { ...initialized, ...(currentData[tab.key] || {}) };
+  }
+  const noticeFields: Record<string, string> = {};
+  let importedCount = 0;
+
+  for (const tab of tabs) {
+    if (!tab.importFrom || tab.importFrom.length === 0) continue;
+    const target = tabData[tab.key];
+    const targetShape: Record<string, string> = {};
+    for (const field of tab.fields) {
+      targetShape[field.key] = target[field.key] || '';
+    }
+    for (const srcKey of tab.importFrom) {
+      const src = stages.find(s => s.stage === srcKey);
+      if (!src || !src.dataJson || src.dataJson === '{}') continue;
+      try {
+        const parsed = JSON.parse(src.dataJson) as Record<string, string>;
+        if (srcKey === 'notice') {
+          for (const [key, value] of Object.entries(parsed)) {
+            if (!noticeFields[key] && value !== undefined && value !== null && String(value).trim() !== '') {
+              noticeFields[key] = String(value);
+            }
+          }
+        }
+        const picked = pickImportableFields(
+          parsed,
+          targetShape,
+          tab.importExclude || [],
+          tab.importMap
+        );
+        for (const [key, value] of Object.entries(picked)) {
+          target[key] = value;
+          targetShape[key] = value;
+          importedCount++;
+        }
+      } catch (error) {
+        // 单条阶段数据损坏不阻塞其他页签导入，记录日志便于排查
+        console.error(`解析前序步骤 ${srcKey} 的已保存数据失败：`, error);
+      }
+    }
+  }
+
+  return { tabData, noticeFields, importedCount };
+}
+
 /** 将 ISO 日期（2026-01-01）转换为中文格式（2026年1月1日） */
 export function formatDateToChinese(dateStr: string): string {
   if (!dateStr) return '';

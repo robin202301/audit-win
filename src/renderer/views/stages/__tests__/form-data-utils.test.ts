@@ -4,7 +4,7 @@
  * 2. composeDeliveryReceiptFields —— 送达回证文书名称与编号拼接
  * 3. mergeImportChainData —— 导出时补充模板专属占位符数据
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   pickImportableFields,
   composeDeliveryReceiptFields,
@@ -12,6 +12,8 @@ import {
   computeMergeExcludedKeys,
   resolveEditorInitialContent,
   formatDateToChinese,
+  getExportButtonState,
+  importTabDataFromStages,
 } from '../formDataUtils';
 
 describe('pickImportableFields 前序数据导入', () => {
@@ -181,6 +183,181 @@ describe('resolveEditorInitialContent 模板型步骤初始内容', () => {
 
   it('模板文本为空串时不会残留占位符', () => {
     expect(resolveEditorInitialContent('{content}', '')).toBe('');
+  });
+});
+
+describe('getExportButtonState 导出按钮状态', () => {
+  it('有模板时按钮可用且无提示', () => {
+    expect(getExportButtonState('15述职报告提纲')).toEqual({ disabled: false, hint: '' });
+  });
+
+  it('无模板时按钮置灰并给出中文说明', () => {
+    const state = getExportButtonState(undefined, '该步骤');
+    expect(state.disabled).toBe(true);
+    expect(state.hint).toContain('该步骤暂无导出模板');
+    expect(state.hint).toContain('仅在本系统中保存');
+  });
+
+  it('空白模板名按无模板处理', () => {
+    expect(getExportButtonState('   ').disabled).toBe(true);
+    expect(getExportButtonState(null).disabled).toBe(true);
+  });
+
+  it('支持自定义作用域文案（页签）', () => {
+    const state = getExportButtonState(undefined, '「民主测评」页签');
+    expect(state.hint).toContain('「民主测评」页签暂无导出模板');
+  });
+});
+
+describe('importTabDataFromStages 页签级前序导入', () => {
+  const tabs = [
+    {
+      key: 'transcript',
+      fields: [{ key: 'projectName' }, { key: 'auditOrg' }],
+      importFrom: ['notice'],
+    },
+    {
+      key: 'outline',
+      fields: [{ key: 'reporterName' }, { key: 'unitName' }, { key: 'positionTitle' }],
+      importFrom: ['notice'],
+      importMap: {
+        reporterName: 'auditedLeaderName',
+        unitName: 'auditedLeaderUnit',
+        positionTitle: 'auditedLeaderPosition',
+      },
+    },
+    {
+      key: 'assessment',
+      fields: [],
+      importFrom: ['notice'],
+    },
+    {
+      key: 'manual',
+      fields: [{ key: 'remark' }],
+    },
+  ];
+
+  const noticeStage = {
+    stage: 'notice',
+    dataJson: JSON.stringify({
+      projectName: '通知书项目',
+      auditOrg: '科右前旗审计局',
+      auditedLeaderName: '张三',
+      auditedLeaderUnit: '旗财政局',
+      auditedLeaderPosition: '局长',
+      text: '配合联系人',
+    }),
+  };
+
+  it('只处理声明了 importFrom 的页签，同名映射与键名映射均生效', () => {
+    const result = importTabDataFromStages(tabs, {}, [noticeStage]);
+    expect(result.tabData.transcript).toEqual({
+      projectName: '通知书项目',
+      auditOrg: '科右前旗审计局',
+    });
+    expect(result.tabData.outline).toEqual({
+      reporterName: '张三',
+      unitName: '旗财政局',
+      positionTitle: '局长',
+    });
+    // 未声明 importFrom 的页签保持原样
+    expect(result.tabData.manual).toEqual({ remark: '' });
+    expect(result.importedCount).toBe(5);
+  });
+
+  it('已填写字段不被覆盖，空值不导入', () => {
+    const current = {
+      transcript: { projectName: '手工项目', auditOrg: '' },
+      outline: { reporterName: '', unitName: '已有单位', positionTitle: '' },
+      assessment: {},
+      manual: { remark: '备注' },
+    };
+    const stage = {
+      stage: 'notice',
+      dataJson: JSON.stringify({
+        projectName: '通知书项目',
+        auditOrg: '科右前旗审计局',
+        auditedLeaderName: '张三',
+        auditedLeaderUnit: '旗财政局',
+        auditedLeaderPosition: '',
+      }),
+    };
+    const result = importTabDataFromStages(tabs, current, [stage]);
+    expect(result.tabData.transcript.projectName).toBe('手工项目');
+    expect(result.tabData.transcript.auditOrg).toBe('科右前旗审计局');
+    expect(result.tabData.outline.reporterName).toBe('张三');
+    expect(result.tabData.outline.unitName).toBe('已有单位');
+    expect(result.tabData.outline.positionTitle).toBe('');
+    expect(result.tabData.manual.remark).toBe('备注');
+  });
+
+  it('importExclude 阻止不同语义同名字段串值', () => {
+    const excludedTabs = [
+      {
+        key: 'transcript',
+        fields: [{ key: 'text' }, { key: 'projectName' }],
+        importFrom: ['notice'],
+        importExclude: ['text'],
+      },
+    ];
+    const result = importTabDataFromStages(excludedTabs, {}, [noticeStage]);
+    expect(result.tabData.transcript.text).toBe('');
+    expect(result.tabData.transcript.projectName).toBe('通知书项目');
+  });
+
+  it('采集通知书字段快照供纯导出页签引用', () => {
+    const result = importTabDataFromStages(tabs, {}, [noticeStage]);
+    expect(result.noticeFields.auditedLeaderName).toBe('张三');
+    expect(result.noticeFields.auditOrg).toBe('科右前旗审计局');
+    // 纯导出页签没有表单字段，不导入值但快照仍可用
+    expect(result.tabData.assessment).toEqual({});
+  });
+
+  it('前序步骤缺失或数据为空时安全返回原数据', () => {
+    const result = importTabDataFromStages(tabs, {}, [{ stage: 'notice', dataJson: '{}' }]);
+    expect(result.importedCount).toBe(0);
+    expect(result.noticeFields).toEqual({});
+    expect(result.tabData.transcript).toEqual({ projectName: '', auditOrg: '' });
+  });
+
+  it('单条前序数据损坏时记录日志且不阻塞其他来源', () => {
+    const multiSourceTabs = [
+      {
+        key: 'transcript',
+        fields: [{ key: 'projectName' }],
+        importFrom: ['plan', 'notice'],
+      },
+    ];
+    const stages = [
+      { stage: 'plan', dataJson: '{不是合法 JSON' },
+      { stage: 'notice', dataJson: JSON.stringify({ projectName: '通知书项目' }) },
+    ];
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const result = importTabDataFromStages(multiSourceTabs, {}, stages);
+      expect(result.tabData.transcript.projectName).toBe('通知书项目');
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('解析前序步骤 plan 的已保存数据失败'),
+        expect.anything()
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it('非通知书来源不写入通知书快照', () => {
+    const planTabs = [
+      {
+        key: 'transcript',
+        fields: [{ key: 'teamLeader' }],
+        importFrom: ['plan'],
+      },
+    ];
+    const result = importTabDataFromStages(planTabs, {}, [
+      { stage: 'plan', dataJson: JSON.stringify({ teamLeader: '李四' }) },
+    ]);
+    expect(result.tabData.transcript.teamLeader).toBe('李四');
+    expect(result.noticeFields).toEqual({});
   });
 });
 

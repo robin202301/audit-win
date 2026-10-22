@@ -221,6 +221,31 @@ export function applyTaskListCellMapping(
   setCellText(ws, 'B6', text('taskListContent'));
 }
 
+/**
+ * 任务清单完成情况（19任务清单完成情况.xls）单元格映射。
+ *
+ * 模板为 BIFF8 旧版 .xls，答案区无占位符，且直接改写模板会丢失样式。
+ * 保持模板原样，导出时按单元格坐标写入：A4 项目名称/填报日期，A5 总体情况。
+ */
+export function applyTaskListCompletionCellMapping(
+  ws: XLSX.WorkSheet,
+  data: Record<string, unknown>
+): void {
+  const text = (key: string): string => {
+    const value = data[key];
+    return value === undefined || value === null ? '' : String(value).trim();
+  };
+
+  const projectName = text('projectName');
+  const compileDate = text('compileDate');
+  setCellText(
+    ws,
+    'A4',
+    `项目名称：${projectName}${compileDate ? `        填报日期：${compileDate}` : ''}`
+  );
+  setCellText(ws, 'A5', `总体情况：${text('completionContent')}`);
+}
+
 /** 写入文本单元格，尽量保留原有单元格样式对象；无单元格时新建字符串单元格 */
 function setCellText(ws: XLSX.WorkSheet, address: string, value: string): void {
   const existing = ws[address] as Cell | undefined;

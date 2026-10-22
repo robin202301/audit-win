@@ -12,8 +12,18 @@
         <button v-if="isEditing" class="btn-secondary" @click="handleResetTemplate">重置为模板</button>
         <button v-if="hasSavedData && !isEditing" class="btn-secondary gov-btn-edit" @click="handleEdit">修改</button>
         <button v-if="isEditing" class="btn-primary" @click="handleSave">保存</button>
-        <button class="btn-primary" @click="handleExport">导出文档</button>
+        <button
+          class="btn-primary"
+          :disabled="exportState.disabled"
+          :title="exportState.hint"
+          @click="handleExport"
+        >导出文档</button>
       </div>
+    </div>
+
+    <!-- 无模板时给出明确说明，避免点击后才提示 -->
+    <div v-if="exportState.disabled" class="gov-export-unavailable mb-3">
+      {{ exportState.hint }}
     </div>
 
     <!-- 数据引用提示 -->
@@ -50,10 +60,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 import { STAGE_FORM_CONFIGS } from './stageConfigs';
-import { resolveEditorInitialContent } from './formDataUtils';
+import { getExportButtonState, resolveEditorInitialContent } from './formDataUtils';
 
 const props = defineProps<{
   projectId: number;
@@ -64,6 +74,8 @@ const props = defineProps<{
 // 模板型步骤的默认正文（如八不准纪律条款、承诺书正文）：
 // 模板中静态标题/落款保留，正文以 {content} 占位符渲染
 const stepConfig = STAGE_FORM_CONFIGS[props.step.key];
+// 无模板步骤置灰导出按钮，避免用户点击后才看到"暂无导出模板"
+const exportState = computed(() => getExportButtonState(props.step.template, '该步骤'));
 
 const content = ref('');
 const saving = ref(false);
@@ -145,7 +157,8 @@ function applyPlaceholders(): void {
   text = text.replace(/\{auditedUnit\}/g, props.projectInfo.auditedTarget);
   text = text.replace(/\{auditProjectName\}/g, props.projectInfo.name);
   text = text.replace(/\{auditedLeaderUnit\}/g, props.projectInfo.auditedTarget);
-  text = text.replace(/\{auditedLeaderName\}/g, props.projectInfo.auditedTarget);
+  // auditedLeaderName 为领导干部姓名，项目信息中没有该值；
+  // 模板使用该字段时应由通知书导入，不能以被审计单位名称顶替
   text = text.replace(/\{auditType\}/g, props.projectInfo.auditType);
   content.value = text;
 }
@@ -202,8 +215,8 @@ function handleEdit(): void {
 }
 
 async function handleExport(): Promise<void> {
-  if (!props.step.template) {
-    alert('该步骤暂无导出模板');
+  if (exportState.value.disabled) {
+    alert(exportState.value.hint);
     return;
   }
   try {
@@ -211,7 +224,6 @@ async function handleExport(): Promise<void> {
     exportData.projectName = props.projectInfo.name;
     exportData.auditedUnit = props.projectInfo.auditedTarget;
     exportData.auditProjectName = props.projectInfo.name;
-    exportData.auditedLeaderName = props.projectInfo.auditedTarget;
     exportData.auditType = props.projectInfo.auditType;
     exportData.text = '';
     exportData.name = '';
@@ -304,6 +316,22 @@ function getStepLabel(key: string): string {
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.btn-primary:disabled {
+  background: #e5e7eb !important;
+  color: #9ca3af !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
+}
+
+.gov-export-unavailable {
+  padding: 6px 12px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 .gov-btn-edit {
