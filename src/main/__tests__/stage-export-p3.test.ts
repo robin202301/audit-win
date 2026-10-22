@@ -92,7 +92,8 @@ describe('P3-9 通知书附件内容与审计委员会办公室', () => {
 
   it.each(noticeCases)('$template 的附件占位符为单 run 完整文本且保留原段落样式', ({ template }) => {
     const xml = readDocumentXml(template);
-    expect(xml).toContain('<w:t>附件：{content}</w:t>');
+    // 经济责任通知书的附件段落末尾追加了办公室条件起始标签（P3-20）
+    expect(xml).toContain('附件：{content}');
     const index = xml.indexOf('附件：{content}');
     const paragraphStart = xml.lastIndexOf('<w:p ', index);
     const paragraphEnd = xml.indexOf('</w:p>', index);
@@ -267,7 +268,7 @@ describe('P3-10 预算执行对外报告字段与占位符对齐', () => {
     expect(xml).toContain('<w:t>{issueOrg}</w:t>');
   });
 
-  it('报告编号、正文、发文机关、签发人与日期全部渲染，静态说明保留', () => {
+  it('报告编号、正文、发文机关、签发人与日期全部渲染，静态掩码正文不再残留', () => {
     const plain = renderTemplate(template, {
       reportNumber: '审报〔2026〕1号',
       auditedUnit: '测试单位',
@@ -282,9 +283,12 @@ describe('P3-10 预算执行对外报告字段与占位符对齐', () => {
     expect(plain).toContain('测试旗审计局');
     expect(plain).toContain('王五');
     expect(plain).toContain('2026年10月22日');
-    // 静态导语与整改要求未被替换
-    expect(plain).toContain('根据《中华人民共和国审计法》第十八条');
-    expect(plain).toContain('请在收到本报告之日起');
+    // P3-21：正文由表单内容生成，静态掩码、固定名称与整改说明不再随模板导出
+    expect(plain).not.toContain('**年**月');
+    expect(plain).not.toContain('****');
+    expect(plain).not.toContain('本次审计发现的问题中');
+    expect(plain).not.toContain('请在收到本报告之日起');
+    expect(plain).not.toContain('旗审计局对');
     expectNoPlaceholder(plain);
   });
 

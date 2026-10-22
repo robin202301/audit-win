@@ -2,7 +2,11 @@
  * 测试：底稿索引号递增 + 取证单摘要解析（纯函数）
  */
 import { describe, it, expect } from 'vitest';
-import { computeNextIndexNumber, parseSummaryItems } from '../paperUtils';
+import {
+  buildWorkingPaperExportData,
+  computeNextIndexNumber,
+  parseSummaryItems,
+} from '../paperUtils';
 
 describe('computeNextIndexNumber', () => {
   it('空项目从 1 开始', () => {
@@ -48,5 +52,75 @@ describe('parseSummaryItems', () => {
 
   it('过滤空白条目', () => {
     expect(parseSummaryItems('[{"content":"  "},{"content":"有效"}]')).toEqual(['有效']);
+  });
+});
+
+describe('buildWorkingPaperExportData', () => {
+  it('完整映射底稿正文、签名与中文日期', () => {
+    const data = buildWorkingPaperExportData(
+      {
+        indexNumber: '1',
+        projectName: '预算执行审计',
+        auditMatter: '预算编制',
+        auditorName: '张三',
+        compileDate: '2026-10-22',
+        auditProcess: '查阅账簿',
+        factSummary: '发现预算执行率偏低。',
+        auditConclusion: '问题属实。',
+        reviewerOpinion: '予以认可。',
+        reviewerName: '李四',
+        reviewDate: '2026-10-23',
+        attachmentCount: 3,
+      },
+      { auditedUnit: '某单位' }
+    );
+
+    expect(data).toEqual({
+      indexNumber: '1',
+      projectName: '预算执行审计',
+      auditedUnit: '某单位',
+      auditMatter: '预算编制',
+      auditorName: '张三',
+      compileDate: '2026年10月22日',
+      auditProcess: '查阅账簿',
+      factSummary: '发现预算执行率偏低。',
+      auditConclusion: '问题属实。',
+      reviewerOpinion: '予以认可。',
+      reviewerName: '李四',
+      reviewDate: '2026年10月23日',
+      attachmentCount: '3',
+    });
+  });
+
+  it('空字段输出空串，避免模板占位符残留 undefined', () => {
+    const data = buildWorkingPaperExportData({});
+    for (const value of Object.values(data)) {
+      expect(value).toBe('');
+    }
+  });
+
+  it('项目名称优先取底稿值，缺失时用通知书/项目信息兜底', () => {
+    expect(
+      buildWorkingPaperExportData(
+        { projectName: '底稿项目名称' },
+        { projectName: '兜底项目名称', auditedUnit: '某单位' }
+      ).projectName
+    ).toBe('底稿项目名称');
+    expect(
+      buildWorkingPaperExportData({}, { projectName: '兜底项目名称', auditedUnit: '某单位' })
+        .projectName
+    ).toBe('兜底项目名称');
+    expect(buildWorkingPaperExportData({}, { auditedUnit: '某单位' }).auditedUnit).toBe('某单位');
+  });
+
+  it('附件页数区分 0、未填写与有效值', () => {
+    expect(buildWorkingPaperExportData({ attachmentCount: 0 }).attachmentCount).toBe('0');
+    expect(buildWorkingPaperExportData({ attachmentCount: null }).attachmentCount).toBe('');
+    expect(buildWorkingPaperExportData({}).attachmentCount).toBe('');
+    expect(buildWorkingPaperExportData({ attachmentCount: 12 }).attachmentCount).toBe('12');
+  });
+
+  it('非法日期保留原值，不丢失用户输入', () => {
+    expect(buildWorkingPaperExportData({ compileDate: '时间待定' }).compileDate).toBe('时间待定');
   });
 });

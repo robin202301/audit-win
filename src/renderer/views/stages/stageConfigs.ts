@@ -479,6 +479,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     template: '25代拟稿封皮',
     exportFile: '代拟稿封皮.docx',
     autoFillFromProject: { projectName: 'name' },
+    defaultValues: { reportTitle: '审  计  报  告' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
       { key: 'reportTitle', label: '报告标题', fullSpan: true },

@@ -133,6 +133,18 @@ describe('P2-5 审计底稿汇总表导出配置', () => {
   });
 });
 
+describe('P3-18 代拟稿封皮默认标题', () => {
+  const config = STAGE_FORM_CONFIGS['draft_cover'];
+
+  it('报告标题默认值与模板原封面标题一致，清空后可回落', () => {
+    expect(config.defaultValues?.reportTitle).toBe('审  计  报  告');
+  });
+
+  it('报告标题仍作为可编辑表单字段暴露', () => {
+    expect(config.fields.find(field => field.key === 'reportTitle')?.label).toBe('报告标题');
+  });
+});
+
 // ============ 送达回证字段配置测试 ============
 describe('送达回证表单字段对齐模板占位符', () => {
   const deliveryConfig = STAGE_FORM_CONFIGS['delivery_receipt'];

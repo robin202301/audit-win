@@ -1,5 +1,57 @@
 // 底稿与取证单共用的纯函数（可独立测试）
 
+import { formatDateToChinese } from './stages/formDataUtils';
+
+/** 审计工作底稿导出所需的最小字段集（与 PaperRow 的导出相关字段一致） */
+export interface WorkingPaperExportInput {
+  indexNumber?: string;
+  projectName?: string;
+  auditMatter?: string;
+  auditorName?: string;
+  compileDate?: string;
+  auditProcess?: string;
+  factSummary?: string;
+  auditConclusion?: string;
+  reviewerOpinion?: string;
+  reviewerName?: string;
+  reviewDate?: string;
+  attachmentCount?: number | null;
+}
+
+export interface WorkingPaperExportFallback {
+  projectName?: string;
+  auditedUnit?: string;
+}
+
+/**
+ * 构建审计工作底稿模板（16审计工作底稿）的导出数据。
+ * 日期转为中文格式；项目名称优先取底稿自身值，遗漏时用通知书/项目信息兜底；
+ * 被审计单位不在底稿表单中，统一由调用方传入的通知书修正值兜底。
+ */
+export function buildWorkingPaperExportData(
+  paper: WorkingPaperExportInput,
+  fallback: WorkingPaperExportFallback = {}
+): Record<string, string> {
+  return {
+    indexNumber: paper.indexNumber || '',
+    projectName: paper.projectName || fallback.projectName || '',
+    auditedUnit: fallback.auditedUnit || '',
+    auditMatter: paper.auditMatter || '',
+    auditorName: paper.auditorName || '',
+    compileDate: formatDateToChinese(paper.compileDate || ''),
+    auditProcess: paper.auditProcess || '',
+    factSummary: paper.factSummary || '',
+    auditConclusion: paper.auditConclusion || '',
+    reviewerOpinion: paper.reviewerOpinion || '',
+    reviewerName: paper.reviewerName || '',
+    reviewDate: formatDateToChinese(paper.reviewDate || ''),
+    attachmentCount:
+      paper.attachmentCount === undefined || paper.attachmentCount === null
+        ? ''
+        : String(paper.attachmentCount),
+  };
+}
+
 /**
  * 解析取证单「审计事项摘要」字段。
  * 新版本存 JSON 数组（[{content}] 或纯字符串数组），旧版本存纯文本。

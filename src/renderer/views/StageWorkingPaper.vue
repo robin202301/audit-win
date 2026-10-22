@@ -120,7 +120,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { computeNextIndexNumber, parseSummaryItems } from './paperUtils';
+import { buildWorkingPaperExportData, computeNextIndexNumber, parseSummaryItems } from './paperUtils';
 
 const props = defineProps<{ projectId: number; projectInfo?: { name: string; auditedTarget: string; auditType: string } }>();
 
@@ -346,10 +346,15 @@ async function exportPaper(item: PaperRow): Promise<void> {
     const res = await window.electronAPI.documents.openSaveDialog(`审计底稿_${item.indexNumber}.docx`);
     if (res.success && res.data) {
       // 模板占位符 auditedUnit（被审计单位）不在底稿表单字段中，
-      // 优先取通知书中的被审计单位（修正值），项目信息兜底
+      // 优先取通知书中的被审计单位（修正值），项目信息兜底；
+      // 其余正文/签名/日期字段由纯函数统一映射，日期导出为中文格式
+      const exportData = buildWorkingPaperExportData(item, {
+        projectName: noticeProjectName.value || props.projectInfo?.name || '',
+        auditedUnit: noticeAuditedUnit.value || props.projectInfo?.auditedTarget || '',
+      });
       const genRes = await window.electronAPI.documents.generate(
         '16审计工作底稿',
-        { ...item, auditedUnit: noticeAuditedUnit.value || props.projectInfo?.auditedTarget || '' },
+        exportData,
         res.data.filePath
       );
       if (genRes.success) {

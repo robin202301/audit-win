@@ -300,6 +300,10 @@ async function handleExport(): Promise<void> {
       if (!exportData.auditProject) exportData.auditProject = props.projectInfo.name;
       if (!exportData.projectName) exportData.projectName = props.projectInfo.name;
     }
+    // 代拟稿封皮标题允许用户清空，清空时回落默认标题，避免封面缺失
+    if (config.template === '25代拟稿封皮' && !exportData.reportTitle) {
+      exportData.reportTitle = config.defaultValues?.reportTitle || '审  计  报  告';
+    }
     if (!exportData.content) exportData.content = '';
     if (!exportData.text) exportData.text = '';
     if (!exportData.name) exportData.name = '';
