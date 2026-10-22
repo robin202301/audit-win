@@ -52,12 +52,18 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
+import { STAGE_FORM_CONFIGS } from './stageConfigs';
+import { resolveEditorInitialContent } from './formDataUtils';
 
 const props = defineProps<{
   projectId: number;
   step: WorkflowStep;
   projectInfo: { name: string; auditedTarget: string; auditType: string };
 }>();
+
+// 模板型步骤的默认正文（如八不准纪律条款、承诺书正文）：
+// 模板中静态标题/落款保留，正文以 {content} 占位符渲染
+const stepConfig = STAGE_FORM_CONFIGS[props.step.key];
 
 const content = ref('');
 const saving = ref(false);
@@ -110,6 +116,12 @@ async function autoImportFromPreviousStages(): Promise<void> {
 }
 
 async function loadTemplateText(): Promise<void> {
+  // 优先使用配置中的默认正文：模板静态标题/落款保留，正文由 {content} 占位符渲染
+  const defaultContent = stepConfig?.defaultValues?.content;
+  if (defaultContent !== undefined) {
+    templateText.value = resolveEditorInitialContent('', defaultContent);
+    return;
+  }
   if (!props.step.template) {
     templateText.value = '';
     return;
@@ -117,9 +129,11 @@ async function loadTemplateText(): Promise<void> {
   try {
     const res = await window.electronAPI.templates.readTemplateText(props.step.template);
     if (res.success && res.data) {
-      templateText.value = res.data;
+      templateText.value = resolveEditorInitialContent(res.data);
     }
-  } catch {
+  } catch (e: unknown) {
+    // 模板读取失败时保持空白编辑区，并记录错误供排查
+    console.error('读取模板文本失败：', e);
     templateText.value = '';
   }
 }

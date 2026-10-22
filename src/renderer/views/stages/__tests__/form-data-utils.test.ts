@@ -5,7 +5,14 @@
  * 3. mergeImportChainData —— 导出时补充模板专属占位符数据
  */
 import { describe, it, expect } from 'vitest';
-import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData, computeMergeExcludedKeys } from '../formDataUtils';
+import {
+  pickImportableFields,
+  composeDeliveryReceiptFields,
+  mergeImportChainData,
+  computeMergeExcludedKeys,
+  resolveEditorInitialContent,
+  formatDateToChinese,
+} from '../formDataUtils';
 
 describe('pickImportableFields 前序数据导入', () => {
   it('导入目标存在且为空的同名字段', () => {
@@ -148,5 +155,45 @@ describe('computeMergeExcludedKeys 文号来源防抢先', () => {
   it('其他步骤不排除任何键', () => {
     expect(computeMergeExcludedKeys('audit_opinion', 'report_consultation')).toEqual([]);
     expect(computeMergeExcludedKeys('report', 'notice')).toEqual([]);
+  });
+});
+
+describe('resolveEditorInitialContent 模板型步骤初始内容', () => {
+  it('配置了默认正文时优先使用默认正文，不显示模板静态标题', () => {
+    const result = resolveEditorInitialContent('标题\n{content}\n落款', '默认正文');
+    expect(result).toBe('默认正文');
+  });
+
+  it('默认正文为空白串时回退模板文本', () => {
+    const result = resolveEditorInitialContent('标题\n{content}\n落款', '   ');
+    expect(result).toBe('标题\n\n落款');
+  });
+
+  it('未配置默认正文时回退模板文本，并移除 {content} 占位符本身', () => {
+    const result = resolveEditorInitialContent('标题\n{content}\n落款');
+    expect(result).toBe('标题\n\n落款');
+    expect(result).not.toContain('{content}');
+  });
+
+  it('模板为空且无默认正文时返回空串', () => {
+    expect(resolveEditorInitialContent('')).toBe('');
+  });
+
+  it('模板文本为空串时不会残留占位符', () => {
+    expect(resolveEditorInitialContent('{content}', '')).toBe('');
+  });
+});
+
+describe('formatDateToChinese 日期格式化', () => {
+  it('ISO 日期转换为中文年月日', () => {
+    expect(formatDateToChinese('2026-10-22')).toBe('2026年10月22日');
+  });
+
+  it('空值返回空串', () => {
+    expect(formatDateToChinese('')).toBe('');
+  });
+
+  it('无法解析的日期原样返回', () => {
+    expect(formatDateToChinese('不是日期')).toBe('不是日期');
   });
 });

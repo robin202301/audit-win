@@ -65,6 +65,65 @@ describe('StageView 路由逻辑', () => {
   });
 });
 
+// ============ P2 导出链路配置测试 ============
+describe('P2-4 模板型步骤默认正文配置', () => {
+  const templateOnlySteps = [
+    'eight_prohibitions',
+    'commitment_letter',
+    'survey_assessment',
+    'survey_measures',
+  ];
+
+  it.each(templateOnlySteps)('%s 应配置非空默认正文，供编辑区加载并写入 {content}', (key) => {
+    const config = STAGE_FORM_CONFIGS[key];
+    expect(config.template).toBeTruthy();
+    expect(config.defaultValues?.content?.trim()).toBeTruthy();
+  });
+
+  it.each(templateOnlySteps)('%s 仍保持零表单字段（大输入框编辑器）', (key) => {
+    expect(STAGE_FORM_CONFIGS[key].fields).toEqual([]);
+  });
+
+  it.each(templateOnlySteps)('%s 默认正文不包含模板静态标题，避免导出重复标题', (key) => {
+    const config = STAGE_FORM_CONFIGS[key];
+    expect(config.defaultValues?.content || '').not.toContain(config.title);
+  });
+});
+
+describe('P2-6 任务清单导出配置', () => {
+  const config = STAGE_FORM_CONFIGS['task_list'];
+
+  it('应接线 12任务清单 模板并使用 xls 导出', () => {
+    expect(config.template).toBe('12任务清单');
+    expect(config.exportFile).toBe('任务清单.xls');
+    const step = WORKFLOW_STEPS.find(s => s.key === 'task_list');
+    expect(step?.template).toBe('12任务清单');
+  });
+
+  it('应包含模板中审计组、项目名称、编制日期、任务内容对应字段', () => {
+    const keys = config.fields.map(f => f.key);
+    expect(keys).toEqual(expect.arrayContaining([
+      'projectName',
+      'teamLeader',
+      'chiefAuditor',
+      'teamMembers',
+      'taskListContent',
+      'compileDate',
+    ]));
+  });
+});
+
+describe('P2-5 审计底稿汇总表导出配置', () => {
+  const config = STAGE_FORM_CONFIGS['working_paper_summary'];
+
+  it('应配置汇总表模板与 xlsx 导出文件名', () => {
+    expect(config.template).toBe('29审计底稿汇总表');
+    expect(config.exportFile).toBe('审计底稿汇总表.xlsx');
+    const step = WORKFLOW_STEPS.find(s => s.key === 'working_paper_summary');
+    expect(step?.template).toBe('29审计底稿汇总表');
+  });
+});
+
 // ============ 送达回证字段配置测试 ============
 describe('送达回证表单字段对齐模板占位符', () => {
   const deliveryConfig = STAGE_FORM_CONFIGS['delivery_receipt'];

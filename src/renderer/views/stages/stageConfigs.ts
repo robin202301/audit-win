@@ -69,6 +69,17 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     template: '04通知附件八不准',
     exportFile: '通知附件八不准.docx',
     fields: [],
+    defaultValues: {
+      content: `一、不准由被审计单位和个人报销或补贴住宿、餐饮、交通、通讯、医疗等费用。
+二、不准接受被审计单位和个人赠送的礼品礼金，或未经批准通过授课等方式获取报酬。
+三、不准参加被审计单位和个人安排的宴请、娱乐、旅游等活动。
+四、不准利用审计工作知悉的国家秘密、商业秘密和内部信息谋取利益。
+五、不准利用审计职权干预被审计单位依法管理的资金、资产、资源的审批或分配使用。
+六、不准向被审计单位推销商品或介绍业务。
+七、不准接受被审计单位和个人的请托干预审计工作。
+八、不准向被审计单位和个人提出任何与审计工作无关的要求。
+违反上述工作要求和工作纪律的，严格按照规定追究责任。`,
+    },
   },
   delivery_receipt: {
     title: '审计文书送达回证',
@@ -110,6 +121,9 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     template: '07被审计单位承诺书',
     exportFile: '被审计单位承诺书.docx',
     fields: [],
+    defaultValues: {
+      content: `根据《中华人民共和国审计法》第三十四条和《中华人民共和国审计法实施条例》第二十八条的规定，在审计期间，我单位愿意给予积极配合，按照审计组的要求，及时提供审计所需财务、会计资料以及与财政收支、财务收支有关的业务、管理等资料，包括电子数据和有关文档，并保证提供资料的及时性、真实性和完整性。`,
+    },
   },
   survey: {
     title: '被审计单位基本情况表',
@@ -142,12 +156,39 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
     template: '09评估被审计单位存在问题可能性',
     exportFile: '评估被审计单位存在重要问题的可能性.docx',
     fields: [],
+    defaultValues: {
+      content: `一、选择作为职业判断依据的标准
+（一）法律、法规、规章和其他规范性文件
+1.
+2.
+3.
+……
+（二）会计准则和会计制度
+1.
+2.
+……
+二、审计人员应当结合适用的标准，分析调查了解被审计单位及其相关情况，判断被审计单位可能存在的问题。
+1.
+……
+三、审计人员应当运用职业判断，根据可能存在问题的性质、数额及其发生的具体环境，判断其重要性。
+根据上述情况，可确定的重要事项：`,
+    },
   },
   survey_measures: {
     title: '确定审计事项和审计应对措施',
     template: '10确定审计事项和审计应对措施',
     exportFile: '确定审计事项和审计应对措施.docx',
     fields: [],
+    defaultValues: {
+      content: `一、确定审计事项
+根据评估被审计单位存在重要问题可能性的基础上，确定了如下审计事项：
+
+
+
+
+二、确定审计应对措施
+（一）`,
+    },
   },
   plan: {
     title: '审计实施方案',
@@ -169,11 +210,15 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   task_list: {
     title: '任务清单',
+    template: '12任务清单',
     exportFile: '任务清单.xls',
     autoFillFromProject: { projectName: 'name' },
     fields: [
       { key: 'projectName', label: '项目名称', fullSpan: true },
-      { key: 'taskListContent', label: '任务清单内容', type: 'textarea', rows: 8, fullSpan: true, placeholder: '审计任务分解、责任人、完成时限等' },
+      { key: 'teamLeader', label: '审计组组长' },
+      { key: 'chiefAuditor', label: '主审' },
+      { key: 'teamMembers', label: '审计组成员', fullSpan: true, placeholder: '多个成员用逗号分隔' },
+      { key: 'taskListContent', label: '任务清单内容', type: 'textarea', rows: 8, fullSpan: true, placeholder: '按行填写审计任务，可注明计划时间、负责人员、执行情况和完成情况' },
       { key: 'compileDate', label: '编制日期', type: 'date' },
     ],
   },
@@ -309,7 +354,8 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
   },
   working_paper_summary: {
     title: '审计底稿汇总表',
-    exportFile: '审计底稿汇总表.xls',
+    template: '29审计底稿汇总表',
+    exportFile: '审计底稿汇总表.xlsx',
     fields: [],
   },
   task_list_completion: {

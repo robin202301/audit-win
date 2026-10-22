@@ -58,6 +58,7 @@ import { useProjectStore } from '@stores/project';
 import { WORKFLOW_STEPS, AuditStage } from '@shared/types';
 import StageEvidence from './StageEvidence.vue';
 import StageWorkingPaper from './StageWorkingPaper.vue';
+import StageWorkingPaperSummary from './StageWorkingPaperSummary.vue';
 import StageArchiveCatalog from './StageArchiveCatalog.vue';
 import StageInterviewRecord from './stages/StageInterviewRecord.vue';
 import GenericStageForm from './stages/GenericStageForm.vue';
@@ -97,10 +98,11 @@ onMounted(async () => {
   }
 });
 
-// 仅取证单和底稿使用专用列表组件（1:N 关系，需要关联管理）
+// 取证单、底稿、底稿汇总表等使用专用列表组件（1:N 关系或聚合展示）
 const LIST_STAGES: Record<string, object> = {
   evidence: markRaw(StageEvidence),
   working_paper: markRaw(StageWorkingPaper),
+  working_paper_summary: markRaw(StageWorkingPaperSummary),
   archive_catalog: markRaw(StageArchiveCatalog),
   interview_record: markRaw(StageInterviewRecord),
 };

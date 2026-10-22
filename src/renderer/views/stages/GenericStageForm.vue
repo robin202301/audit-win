@@ -90,7 +90,7 @@ import { computed, nextTick, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 import { STAGE_FORM_CONFIGS } from './stageConfigs';
 import { NOTICE_TEMPLATES } from '@shared/types';
-import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData, computeMergeExcludedKeys } from './formDataUtils';
+import { pickImportableFields, composeDeliveryReceiptFields, mergeImportChainData, computeMergeExcludedKeys, formatDateToChinese } from './formDataUtils';
 
 const props = defineProps<{
   projectId: number;
@@ -260,18 +260,6 @@ function doEdit(): void {
       }
     }
   });
-}
-
-/** 将 ISO 日期（2026-01-01）转换为中文格式（2026年1月1日） */
-function formatDateToChinese(dateStr: string): string {
-  if (!dateStr) return '';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-  } catch {
-    return dateStr;
-  }
 }
 
 async function handleExport(): Promise<void> {

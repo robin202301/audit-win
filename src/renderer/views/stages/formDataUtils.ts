@@ -68,6 +68,34 @@ export function computeMergeExcludedKeys(stepKey: string, srcKey: string): strin
 }
 
 /**
+ * 模板型步骤编辑器的初始内容：
+ * - 配置了默认正文（defaultContent）时优先使用，模板中的静态标题/落款不进入编辑区；
+ * - 未配置时回退到模板文本，并移除正文占位符 {content} 本身，避免用户误编辑占位符。
+ * 这样保存的编辑内容可通过 {content} 渲染回导出文档，且不会重复静态标题。
+ */
+export function resolveEditorInitialContent(
+  templateText: string,
+  defaultContent?: string
+): string {
+  if (defaultContent !== undefined && defaultContent.trim() !== '') {
+    return defaultContent;
+  }
+  return (templateText || '').replace(/\{content\}/g, '');
+}
+
+/** 将 ISO 日期（2026-01-01）转换为中文格式（2026年1月1日） */
+export function formatDateToChinese(dateStr: string): string {
+  if (!dateStr) return '';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  } catch {
+    return dateStr;
+  }
+}
+
+/**
  * 送达回证导出字段拼接：
  * 模板占位符为「送达文书名称和文号：{documentName}{documentNumber}」，
  * 将文书编号以「（编号）」的形式拼接到名称之后，如：

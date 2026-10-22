@@ -83,6 +83,7 @@ import { computed, onMounted, ref } from 'vue';
 import type { WorkflowStep } from '@shared/types';
 import { STAGE_FORM_CONFIGS } from './stageConfigs';
 import type { InterviewTabConfig } from './stageConfigs';
+import { formatDateToChinese } from './formDataUtils';
 
 import { WORKFLOW_STEPS } from '@shared/types';
 
@@ -291,7 +292,9 @@ async function handleExport(): Promise<void> {
     // 每个字段独立传入（模板中已注入对应的 {fieldKey} 占位符）
     const exportData: Record<string, string> = {};
     for (const field of tab.fields) {
-      exportData[field.key] = tabData[field.key] || '';
+      const value = tabData[field.key] || '';
+      // 日期字段统一转为中文日期，避免导出文档显示 ISO 日期
+      exportData[field.key] = field.type === 'date' ? formatDateToChinese(value) : value;
     }
 
     // 从通知书自动引用 auditedLeaderName（**同志）

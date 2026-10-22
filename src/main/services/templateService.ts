@@ -3,6 +3,11 @@ import path from 'path';
 import fs from 'fs';
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
+import {
+  renderExcelWorksheet,
+  sanitizeWorkbookForWrite,
+  applyTaskListCellMapping,
+} from './excelTemplate';
 
 function getTemplateBasePath(): string {
   let basePath: string;
@@ -99,25 +104,17 @@ export async function generateExcel(
 
   if (!ws) throw new Error('Excel 模板中无可用工作表');
 
-  // 替换单元格中的 {placeholder}
-  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-  for (let R = range.s.r; R <= range.e.r; R++) {
-    for (let C = range.s.c; C <= range.e.c; C++) {
-      const addr = XLSX.utils.encode_cell({ r: R, c: C });
-      const cell = ws[addr];
-      if (cell && typeof cell.v === 'string') {
-        let text = cell.v;
-        // 替换 {key} 占位符
-        text = text.replace(/\{(\w+)\}/g, (_match: string, key: string) => {
-          const val = data[key];
-          return val !== undefined ? String(val) : '';
-        });
-        cell.v = text;
-        if (cell.w) cell.w = text;
-      }
-    }
+  // 统一由纯函数渲染：先展开 {#items}…{/items} 行循环，再替换普通占位符
+  renderExcelWorksheet(ws, data);
+
+  // 旧版 BIFF8 模板（任务清单）不含占位符，按既定单元格坐标映射表单数据，
+  // 避免改写模板导致字体/边框等样式丢失
+  if (templateName === '12任务清单') {
+    applyTaskListCellMapping(ws, data);
   }
 
+  // .xls 写回前清空文档属性，避免 SheetJS 因不支持的属性类型抛错
+  sanitizeWorkbookForWrite(wb);
   XLSX.writeFile(wb, outputPath);
 }
 
