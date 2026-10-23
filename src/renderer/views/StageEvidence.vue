@@ -523,16 +523,18 @@ async function handleExport(): Promise<void> {
   }
 }
 
-/** 从事项生成底稿 — 跳转到底稿页面并预填 */
+/** 从事项生成底稿 — 跳转到底稿页面并预填事项与摘要 */
 function generatePaper(index: number): void {
   const matterContent = matters.value[index]?.content || '';
+  const summaryContent = summaryItems.value[index]?.content || '';
   router.push({
-    path: `/stage/${props.projectId}/working_paper`,
+    path: `/project/${props.projectId}/stage/working_paper`,
     query: {
       fromEvidence: '1',
       evidenceId: String(evidenceId.value || ''),
       matterIndex: String(index + 1),
       matterContent,
+      summaryContent,
       projectName: props.projectInfo?.name || '',
     },
   });

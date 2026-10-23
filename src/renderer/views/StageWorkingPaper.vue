@@ -226,6 +226,9 @@ onMounted(async () => {
     if (route.query.matterContent) {
       formData.value.auditMatter = String(route.query.matterContent);
     }
+    if (route.query.summaryContent) {
+      formData.value.factSummary = String(route.query.summaryContent);
+    }
     if (route.query.matterIndex) {
       formData.value.indexNumber = String(route.query.matterIndex);
     } else {

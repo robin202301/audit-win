@@ -50,6 +50,14 @@ describe('审计取证单模板渲染', () => {
     expect(plain).not.toContain('{matterSummary}');
   });
 
+  it('编号应渲染到编号栏，为空时不残留占位符', () => {
+    const plain = renderTemplate({ ...baseData, matterSummary: '摘要', serialNumber: 'AQ-2026-001' });
+    expect(plain).toContain('AQ-2026-001');
+
+    const empty = renderTemplate({ ...baseData, matterSummary: '摘要', serialNumber: '' });
+    expect(empty).not.toContain('{serialNumber}');
+  });
+
   it('其他占位符（事项列表、项目名称、被审计单位）渲染正常', () => {
     const plain = renderTemplate({ ...baseData, matterSummary: '摘要' });
     expect(plain).toContain('测试项目');
