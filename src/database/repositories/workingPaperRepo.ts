@@ -4,15 +4,39 @@ import { WorkingPaper } from '@shared/types';
 export class WorkingPaperRepo {
   constructor(private db: Database) {}
 
+  // 显式别名映射为 camelCase：sqlite 返回原始 snake_case 列名，
+  // 渲染进程按 camelCase 读取，未映射会导致保存的数据加载后全部丢失
+  private static readonly SELECT_COLUMNS = `
+    id,
+    project_id AS projectId,
+    index_number AS indexNumber,
+    project_name AS projectName,
+    audit_matter AS auditMatter,
+    auditor_name AS auditorName,
+    compile_date AS compileDate,
+    audit_process AS auditProcess,
+    fact_summary AS factSummary,
+    audit_conclusion AS auditConclusion,
+    reviewer_opinion AS reviewerOpinion,
+    reviewer_name AS reviewerName,
+    review_date AS reviewDate,
+    attachment_count AS attachmentCount,
+    created_at AS createdAt,
+    updated_at AS updatedAt
+  `;
+
   async getByProjectId(projectId: number): Promise<WorkingPaper[]> {
     return this.db.all<WorkingPaper[]>(
-      'SELECT * FROM working_papers WHERE project_id = ? ORDER BY created_at DESC',
+      `SELECT ${WorkingPaperRepo.SELECT_COLUMNS} FROM working_papers WHERE project_id = ? ORDER BY created_at DESC`,
       projectId
     );
   }
 
   async getById(id: number): Promise<WorkingPaper | undefined> {
-    return this.db.get<WorkingPaper>('SELECT * FROM working_papers WHERE id = ?', id);
+    return this.db.get<WorkingPaper>(
+      `SELECT ${WorkingPaperRepo.SELECT_COLUMNS} FROM working_papers WHERE id = ?`,
+      id
+    );
   }
 
   async create(data: {

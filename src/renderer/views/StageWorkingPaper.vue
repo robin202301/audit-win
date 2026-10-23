@@ -7,7 +7,11 @@
           <span class="gov-step-badge">11</span>
           <h2 class="gov-step-title">审计工作底稿</h2>
         </div>
-        <button class="gov-btn-primary" @click="openForm">新增底稿</button>
+        <div class="flex gap-2">
+          <button v-if="stepStatus !== 'completed'" class="gov-btn-complete" @click="handleMarkComplete">标记完成</button>
+          <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
+          <button class="gov-btn-primary" @click="openForm">新增底稿</button>
+        </div>
       </div>
 
       <div v-if="loading" class="text-center py-4 text-gray-500">加载中...</div>
@@ -146,6 +150,7 @@ const paperList = ref<PaperRow[]>([]);
 const loading = ref(false);
 const showForm = ref(false);
 const editingId = ref<number | null>(null);
+const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
 /** 当前项目取证单摘要选项（label 用于展示，content 引用后填入审计事项） */
 const evidenceSummaries = ref<Array<{ label: string; content: string }>>([]);
 const summarySelect = ref('');
@@ -210,6 +215,7 @@ onMounted(async () => {
   await loadPapers();
   await loadEvidenceSummaries();
   await loadNoticeFields();
+  await loadStageStatus();
 
   // 检查是否从取证单跳转而来（带预填数据）
   if (route.query.fromEvidence === '1') {
@@ -238,6 +244,43 @@ async function loadPapers(): Promise<void> {
     }
   } finally {
     loading.value = false;
+  }
+}
+
+/** 从 stage_progress 恢复本步骤完成状态 */
+async function loadStageStatus(): Promise<void> {
+  try {
+    const res = await window.electronAPI.stages.getByProjectId(props.projectId);
+    if (!res.success || !res.data) return;
+    const found = (res.data as Array<{ stage: string; status?: string }>).find(s => s.stage === 'working_paper');
+    if (found?.status) {
+      stepStatus.value = found.status as typeof stepStatus.value;
+    }
+  } catch {
+    // 状态读取失败不影响底稿编辑
+  }
+}
+
+/** 同步步骤状态到 stage_progress（底稿数据存于 working_papers，状态单独维护） */
+async function syncStageProgress(status: 'in_progress' | 'completed'): Promise<void> {
+  try {
+    await window.electronAPI.stages.updateData(
+      props.projectId,
+      'working_paper',
+      '{}',
+      status
+    );
+  } catch (e) {
+    console.error('同步底稿步骤状态失败：', e);
+  }
+}
+
+async function handleMarkComplete(): Promise<void> {
+  try {
+    await syncStageProgress('completed');
+    stepStatus.value = 'completed';
+  } catch (e: unknown) {
+    alert('操作失败：' + (e as Error).message);
   }
 }
 
@@ -307,15 +350,18 @@ function editPaper(item: PaperRow): void {
 async function handleSaveForm(): Promise<void> {
   try {
     const data = { projectId: props.projectId, ...formData.value };
+    let saved = false;
     if (editingId.value) {
       const res = await window.electronAPI.workingPapers.update(editingId.value, data);
       if (res.success) {
+        saved = true;
         closeForm();
         await loadPapers();
       }
     } else {
       const res = await window.electronAPI.workingPapers.create(data);
       if (res.success) {
+        saved = true;
         // 如果从取证单跳转，建立关联
         const evidenceId = route.query.evidenceId ? Number(route.query.evidenceId) : null;
         if (evidenceId && res.data?.id) {
@@ -328,6 +374,10 @@ async function handleSaveForm(): Promise<void> {
         closeForm();
         await loadPapers();
       }
+    }
+    if (saved) {
+      stepStatus.value = 'in_progress';
+      await syncStageProgress('in_progress');
     }
   } catch (e: unknown) {
     alert('保存失败：' + (e as Error).message);
@@ -413,6 +463,34 @@ async function exportPaper(item: PaperRow): Promise<void> {
 .gov-btn-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #a00000, #c42828);
   transform: translateY(-1px);
+}
+
+.gov-btn-complete {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.gov-btn-complete:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  transform: translateY(-1px);
+}
+
+.gov-status-complete {
+  padding: 6px 14px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .gov-table {

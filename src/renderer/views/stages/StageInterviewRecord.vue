@@ -6,6 +6,8 @@
         <h2 class="gov-step-title">{{ config.title }}</h2>
       </div>
       <div class="flex gap-2">
+        <button v-if="stepStatus !== 'completed'" class="gov-btn-complete" @click="handleMarkComplete">标记完成</button>
+        <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
         <button v-if="activeTabConfig.fields.length > 0 && hasSavedData && !isEditing" class="gov-btn-edit" @click="doEdit">修改</button>
         <button v-if="activeTabConfig.fields.length > 0 && isEditing" class="gov-btn-primary" @click="handleSave">
           {{ saving ? '保存中...' : '保存' }}
@@ -117,6 +119,7 @@ const saveSuccess = ref(false);
 const hasSavedData = ref(false);
 const isEditing = ref(true);
 const formTouched = ref(false);  // 用户是否已触碰表单（防止异步加载覆盖用户输入）
+const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
 
 // 所有 tab 的数据存储（key → 该 tab 的 formData）
 const allTabData = ref<Record<string, Record<string, string>>>({});
@@ -206,6 +209,9 @@ async function loadSavedData(): Promise<void> {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);
     if (!res.success || !res.data) return;
     const stageData = res.data.find((s: { stage: string }) => s.stage === stageKey.value);
+    if (stageData?.status) {
+      stepStatus.value = stageData.status as typeof stepStatus.value;
+    }
     if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
       const parsed = JSON.parse(stageData.dataJson);
       // 仅当用户尚未触碰表单时才恢复已保存数据（防止异步加载竞态覆盖用户输入）
@@ -264,6 +270,7 @@ async function handleSave(): Promise<void> {
     if (res.success) {
       hasSavedData.value = true;
       isEditing.value = false;
+      stepStatus.value = 'in_progress';
       saveSuccess.value = true;
       setTimeout(() => { saveSuccess.value = false; }, 2000);
     } else {
@@ -273,6 +280,37 @@ async function handleSave(): Promise<void> {
     saveError.value = `保存失败：${(e as Error).message}`;
   } finally {
     saving.value = false;
+  }
+}
+
+/** 标记完成：保留已填写内容，仅将本步骤置为完成状态 */
+async function handleMarkComplete(): Promise<void> {
+  allTabData.value[activeTab.value] = { ...formData.value };
+  try {
+    const data: Record<string, Record<string, string>> = {};
+    for (const tab of config.tabs!) {
+      const tabData = allTabData.value[tab.key] || {};
+      // 过滤空值
+      const cleaned: Record<string, string> = {};
+      for (const [k, v] of Object.entries(tabData)) {
+        if (v) cleaned[k] = v;
+      }
+      data[tab.key] = cleaned;
+    }
+    const res = await window.electronAPI.stages.updateData(
+      props.projectId, stageKey.value, JSON.stringify(data), 'completed'
+    );
+    if (res.success) {
+      hasSavedData.value = true;
+      isEditing.value = false;
+      stepStatus.value = 'completed';
+      saveSuccess.value = true;
+      setTimeout(() => { saveSuccess.value = false; }, 2000);
+    } else {
+      saveError.value = res.message || '操作失败';
+    }
+  } catch (e: unknown) {
+    saveError.value = `操作失败：${(e as Error).message}`;
   }
 }
 
@@ -470,5 +508,30 @@ function getStepLabel(key: string): string {
   border-radius: 4px;
   font-size: 13px;
   color: #6b7280;
+}
+
+/* 标记完成按钮 */
+.gov-btn-complete {
+  padding: 6px 16px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+.gov-btn-complete:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+}
+.gov-status-complete {
+  padding: 6px 14px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
 }
 </style>

@@ -3,6 +3,8 @@
     <div class="gov-archive-header">
       <h2 class="gov-archive-title">审计档案目录</h2>
       <div class="gov-archive-actions">
+        <button v-if="stepStatus !== 'completed'" class="gov-btn-complete" @click="handleMarkComplete">标记完成</button>
+        <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
         <button class="gov-btn-auto" @click="autoGenerate">自动生成</button>
         <button class="gov-btn-add" @click="addRow">添加行</button>
         <button class="gov-btn-export" @click="handleExport">导出Excel</button>
@@ -106,6 +108,7 @@ interface Volume {
 const activeVolume = ref('1');
 const autoGenerating = ref(false);
 const hasUnsavedChanges = ref(false);
+const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
 
 // 原始数据（保存后的快照）
 const volumesData = ref<Record<string, ArchiveEntry[]>>({});
@@ -444,12 +447,37 @@ async function handleSave(): Promise<void> {
     );
     if (res.success) {
       hasUnsavedChanges.value = false;
+      stepStatus.value = 'completed';
       alert('档案目录已保存');
     } else {
       alert('保存失败：' + (res.message || '未知错误'));
     }
   } catch (e: unknown) {
     alert('保存失败：' + (e as Error).message);
+  }
+}
+
+/** 标记完成：保存当前目录数据并置为完成状态 */
+async function handleMarkComplete(): Promise<void> {
+  try {
+    const data: Record<string, ArchiveEntry[]> = {};
+    for (const vol of Object.keys(volumesData.value)) {
+      data[vol] = volumesData.value[vol];
+    }
+    const res = await window.electronAPI.stages.updateData(
+      props.projectId,
+      'archive_catalog',
+      JSON.stringify(data),
+      'completed'
+    );
+    if (res.success) {
+      hasUnsavedChanges.value = false;
+      stepStatus.value = 'completed';
+    } else {
+      alert('操作失败：' + (res.message || '未知错误'));
+    }
+  } catch (e: unknown) {
+    alert('操作失败：' + (e as Error).message);
   }
 }
 
@@ -535,6 +563,9 @@ async function init(): Promise<void> {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);
     if (res.success && res.data) {
       const stageData = res.data.find((s: { stage: string }) => s.stage === 'archive_catalog');
+      if (stageData?.status) {
+        stepStatus.value = stageData.status as typeof stepStatus.value;
+      }
       if (stageData && stageData.dataJson && stageData.dataJson !== '{}') {
         try {
           const parsed = JSON.parse(stageData.dataJson);
@@ -930,5 +961,34 @@ onMounted(() => { init(); });
 
 .tbl-btn-delete:hover {
   background: #fef2f2;
+}
+
+/* 标记完成按钮 */
+.gov-btn-complete {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.gov-btn-complete:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  transform: translateY(-1px);
+}
+
+.gov-status-complete {
+  padding: 6px 14px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
 }
 </style>

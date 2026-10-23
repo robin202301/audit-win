@@ -13,6 +13,9 @@
           </svg>
           {{ saving ? '保存中...' : '保存' }}
         </button>
+        <button v-if="stepStatus !== 'completed'" class="gov-btn-complete" @click="handleMarkComplete">
+          标记完成
+        </button>
         <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
         <button class="gov-btn-export" @click="handleExport">导出文档</button>
       </div>
@@ -24,7 +27,7 @@
     </div>
 
     <!-- 编辑态 -->
-    <div v-if="isEditing" :key="'edit-' + editKey" @focusin="formTouched = true">
+    <div ref="editRootRef" v-if="isEditing" :key="'edit-' + editKey" @focusin="formTouched = true">
       <!-- 基础信息 -->
       <div class="gov-form-grid">
         <div>
@@ -223,6 +226,7 @@ const formData = ref({
 
 const matters = ref<MatterItem[]>([{ content: '' }]);
 const summaryItems = ref<MatterItem[]>([{ content: '' }]);
+const editRootRef = ref<HTMLElement | null>(null);  // 编辑态容器，用于将焦点限定在本组件内
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 const saveSuccess = ref(false);
@@ -240,6 +244,11 @@ onMounted(async () => {
   try {
     const res = await window.electronAPI.stages.getByProjectId(props.projectId);
     if (res.success && res.data) {
+      // 恢复本步骤完成状态（取证单数据存于 evidence_items，状态存于 stage_progress）
+      const evidenceStage = (res.data as Array<{ stage: string; status?: string }>).find(s => s.stage === 'evidence');
+      if (evidenceStage?.status) {
+        stepStatus.value = evidenceStage.status as typeof stepStatus.value;
+      }
       for (const srcKey of ['notice', 'plan']) {
         const src = (res.data as Array<{ stage: string; dataJson: string }>).find(s => s.stage === srcKey);
         if (!src || !src.dataJson || src.dataJson === '{}') continue;
@@ -344,7 +353,11 @@ function doEdit(): void {
   editKey.value++;
   saveError.value = null;
   nextTick(() => {
-    const firstInput = document.querySelector('.gov-input-editable') as HTMLInputElement;
+    // 焦点查找限定在本组件编辑容器内，避免页面存在多个表单时焦点落到其他组件
+    const root = editRootRef.value;
+    const firstInput = root
+      ? (root.querySelector('.gov-input-editable') as HTMLInputElement | null)
+      : null;
     if (firstInput) firstInput.focus();
   });
 }
@@ -419,6 +432,7 @@ async function handleSave(): Promise<void> {
       hasSavedData.value = true;
       isEditing.value = false;
       stepStatus.value = 'in_progress';
+      await syncStageProgress('in_progress');
       await loadPaperStatus();
       saveSuccess.value = true;
       setTimeout(() => { saveSuccess.value = false; }, 3000);
@@ -429,6 +443,53 @@ async function handleSave(): Promise<void> {
     saveError.value = `保存失败：${(e as Error).message}`;
   } finally {
     saving.value = false;
+  }
+}
+
+/** 同步步骤状态到 stage_progress（取证单内容存于 evidence_items，状态单独维护） */
+async function syncStageProgress(status: 'in_progress' | 'completed'): Promise<void> {
+  try {
+    await window.electronAPI.stages.updateData(
+      props.projectId,
+      'evidence',
+      JSON.stringify(formData.value),
+      status
+    );
+  } catch (e) {
+    console.error('同步取证单步骤状态失败：', e);
+  }
+}
+
+async function handleMarkComplete(): Promise<void> {
+  try {
+    // 与保存一致：先落库取证单内容，再置完成状态，避免编辑中标记完成丢失表单数据
+    const data = {
+      projectId: props.projectId,
+      ...formData.value,
+      matterSummary: JSON.stringify(matters.value),
+      summaryText: JSON.stringify(summaryItems.value),
+    };
+    let res;
+    if (evidenceId.value) {
+      res = await window.electronAPI.evidence.update(evidenceId.value, data);
+    } else {
+      res = await window.electronAPI.evidence.create(data);
+      if (res.success && res.data?.id) {
+        evidenceId.value = res.data.id;
+      }
+    }
+    if (!res.success) {
+      saveError.value = res.message || '保存失败';
+      return;
+    }
+    await syncStageProgress('completed');
+    hasSavedData.value = true;
+    isEditing.value = false;
+    stepStatus.value = 'completed';
+    saveSuccess.value = true;
+    setTimeout(() => { saveSuccess.value = false; }, 3000);
+  } catch (e: unknown) {
+    alert('操作失败：' + (e as Error).message);
   }
 }
 
@@ -566,6 +627,24 @@ function generatePaper(index: number): void {
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
+}
+
+.gov-btn-complete {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.gov-btn-complete:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  transform: translateY(-1px);
 }
 
 .gov-import-hint {

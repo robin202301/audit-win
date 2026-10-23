@@ -7,6 +7,7 @@ export interface FormField {
   rows?: number;
   fullSpan?: boolean;  // 是否占满两列
   auditTypes?: string[];  // 适用的审计类型（留空表示通用）
+  options?: string[];  // select 类型的下拉选项
 }
 
 /** 谈话记录子页签配置 */
@@ -94,7 +95,7 @@ export const STAGE_FORM_CONFIGS: Record<string, StageFormConfig> = {
       { key: 'documentName', label: '文书名称', placeholder: '例：审计通知书' },
       { key: 'documentNo', label: '文书编号' },
       { key: 'recipientUnit', label: '收件单位' },
-      { key: 'deliveryMethod', label: '送达方式' },
+      { key: 'deliveryMethod', label: '送达方式', type: 'select', options: ['快递', '平邮'] },
       { key: 'deliveryDate', label: '送达日期', type: 'date' },
       { key: 'address', label: '送达地址', fullSpan: true },
       { key: 'postCode', label: '邮编' },

@@ -18,7 +18,7 @@
           </svg>
           {{ saving ? '保存中...' : '保存' }}
         </button>
-        <button v-if="config.fields.length > 0 && hasSavedData && stepStatus !== 'completed' && !isEditing" class="gov-btn-complete" @click="handleMarkComplete">
+        <button v-if="config.fields.length > 0 && stepStatus !== 'completed'" class="gov-btn-complete" @click="handleMarkComplete">
           标记完成
         </button>
         <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
@@ -53,7 +53,7 @@
     </div>
 
     <!-- 编辑态：表单输入 -->
-    <div v-if="config.fields.length > 0 && isEditing" :key="'edit-' + editKey" class="gov-form-grid" @focusin="formTouched = true">
+    <div ref="editGridRef" v-if="config.fields.length > 0 && isEditing" :key="'edit-' + editKey" class="gov-form-grid" @focusin="formTouched = true">
       <div v-for="field in visibleFields" :key="field.key" :class="field.fullSpan ? 'gov-span-2' : ''">
         <label class="gov-field-label">{{ field.label }}</label>
         <textarea
@@ -71,6 +71,14 @@
           :placeholder="field.placeholder || ''"
           @change="validateDateField(field.key)"
         />
+        <select
+          v-else-if="field.type === 'select'"
+          v-model="formData[field.key]"
+          class="gov-input gov-input-editable"
+        >
+          <option value="" disabled>{{ field.placeholder || '请选择' + field.label }}</option>
+          <option v-for="opt in field.options || []" :key="opt" :value="opt">{{ opt }}</option>
+        </select>
         <input
           v-else
           v-model="formData[field.key]"
@@ -129,6 +137,7 @@ const visibleFields = computed(() => {
 });
 
 const formData = ref<Record<string, string>>({});
+const editGridRef = ref<HTMLElement | null>(null);  // 编辑态网格容器，用于将焦点限定在本组件内
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 const saveSuccess = ref(false);
@@ -264,7 +273,11 @@ function doEdit(): void {
   editKey.value++;  // 强制 DOM 重新创建元素
   saveError.value = null;
   nextTick(() => {
-    const firstInput = document.querySelector('.gov-input-editable') as HTMLInputElement;
+    // 焦点查找限定在本组件编辑网格内，避免页面存在多个表单时焦点落到其他组件
+    const root = editGridRef.value;
+    const firstInput = root
+      ? (root.querySelector('.gov-input-editable') as HTMLInputElement | null)
+      : null;
     if (firstInput) {
       firstInput.focus();
       // 对于非 textarea 和 date 的 input，尝试 select

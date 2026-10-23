@@ -49,6 +49,9 @@ declare global {
   }
 }
 
+/** 随审计通知书自动签发的附件材料，默认即为完成状态 */
+const DEFAULT_COMPLETED_STAGES = ['eight_prohibitions', 'commitment_letter'];
+
 export const useProjectStore = defineStore('project', () => {
   const projects = shallowRef<Project[]>([]);
   const currentProject = ref<Project | null>(null);
@@ -156,7 +159,11 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   function getStageStatus(stage: string): string {
-    return stageProgress.value.find((s) => s.stage === stage)?.status || 'not_started';
+    const found = stageProgress.value.find((s) => s.stage === stage);
+    if (found) return found.status;
+    // 通知附件八不准、被审计单位承诺书为随通知书自动签发的材料，默认即为完成状态
+    if (DEFAULT_COMPLETED_STAGES.includes(stage)) return 'completed';
+    return 'not_started';
   }
 
   return {

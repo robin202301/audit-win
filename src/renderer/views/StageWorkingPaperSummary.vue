@@ -8,9 +8,13 @@
           <p class="text-sm text-gray-500 mt-1">汇总当前项目全部审计工作底稿，按索引号顺序导出</p>
         </div>
       </div>
-      <button class="btn-primary" :disabled="exporting || paperList.length === 0" @click="handleExport">
-        {{ exporting ? '导出中...' : '导出汇总表' }}
-      </button>
+      <div class="flex gap-2">
+        <button v-if="stepStatus !== 'completed'" class="gov-btn-complete" @click="handleMarkComplete">标记完成</button>
+        <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
+        <button class="btn-primary" :disabled="exporting || paperList.length === 0" @click="handleExport">
+          {{ exporting ? '导出中...' : '导出汇总表' }}
+        </button>
+      </div>
     </div>
 
     <div v-if="loading" class="text-center py-8 text-gray-500">加载中...</div>
@@ -70,6 +74,7 @@ const loading = ref(false);
 const exporting = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
+const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
 
 const summaryRows = computed(() =>
   buildWorkingPaperSummaryData(
@@ -85,7 +90,36 @@ const summaryRows = computed(() =>
 onMounted(async () => {
   await loadNoticeInfo();
   await loadPapers();
+  await loadStageStatus();
 });
+
+/** 从 stage_progress 恢复本步骤完成状态 */
+async function loadStageStatus(): Promise<void> {
+  try {
+    const res = await window.electronAPI.stages.getByProjectId(props.projectId);
+    if (!res.success || !res.data) return;
+    const found = (res.data as Array<{ stage: string; status?: string }>).find(s => s.stage === 'working_paper_summary');
+    if (found?.status) {
+      stepStatus.value = found.status as typeof stepStatus.value;
+    }
+  } catch {
+    // 状态读取失败不影响汇总展示
+  }
+}
+
+async function handleMarkComplete(): Promise<void> {
+  try {
+    await window.electronAPI.stages.updateData(
+      props.projectId,
+      'working_paper_summary',
+      '{}',
+      'completed'
+    );
+    stepStatus.value = 'completed';
+  } catch (e: unknown) {
+    alert('操作失败：' + (e as Error).message);
+  }
+}
 
 async function loadPapers(): Promise<void> {
   loading.value = true;
@@ -227,5 +261,33 @@ async function handleExport(): Promise<void> {
   color: #1f2937;
   vertical-align: top;
   word-break: break-all;
+}
+
+.gov-btn-complete {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.gov-btn-complete:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  transform: translateY(-1px);
+}
+
+.gov-status-complete {
+  padding: 6px 14px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
 }
 </style>

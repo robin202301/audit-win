@@ -4,15 +4,40 @@ import { EvidenceItem } from '@shared/types';
 export class EvidenceRepo {
   constructor(private db: Database) {}
 
+  // 显式别名映射为 camelCase：sqlite 返回原始 snake_case 列名，
+  // 渲染进程按 camelCase 读取，未映射会导致保存的数据加载后全部丢失
+  private static readonly SELECT_COLUMNS = `
+    id,
+    project_id AS projectId,
+    serial_number AS serialNumber,
+    project_name AS projectName,
+    audited_unit AS auditedUnit,
+    matter_summary AS matterSummary,
+    summary_text AS summaryText,
+    evidence_content AS evidenceContent,
+    legal_basis AS legalBasis,
+    auditor_name AS auditorName,
+    compile_date AS compileDate,
+    provider_opinion AS providerOpinion,
+    provider_signature AS providerSignature,
+    feedback_deadline AS feedbackDeadline,
+    attachment_paths AS attachmentPaths,
+    created_at AS createdAt,
+    updated_at AS updatedAt
+  `;
+
   async getByProjectId(projectId: number): Promise<EvidenceItem[]> {
     return this.db.all<EvidenceItem[]>(
-      'SELECT * FROM evidence_items WHERE project_id = ? ORDER BY created_at DESC',
+      `SELECT ${EvidenceRepo.SELECT_COLUMNS} FROM evidence_items WHERE project_id = ? ORDER BY created_at DESC`,
       projectId
     );
   }
 
   async getById(id: number): Promise<EvidenceItem | undefined> {
-    return this.db.get<EvidenceItem>('SELECT * FROM evidence_items WHERE id = ?', id);
+    return this.db.get<EvidenceItem>(
+      `SELECT ${EvidenceRepo.SELECT_COLUMNS} FROM evidence_items WHERE id = ?`,
+      id
+    );
   }
 
   async create(data: {

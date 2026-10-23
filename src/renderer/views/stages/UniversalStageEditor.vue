@@ -12,6 +12,10 @@
         <button v-if="isEditing" class="btn-secondary" @click="handleResetTemplate">重置为模板</button>
         <button v-if="hasSavedData && !isEditing" class="btn-secondary gov-btn-edit" @click="handleEdit">修改</button>
         <button v-if="isEditing" class="btn-primary" @click="handleSave">保存</button>
+        <button v-if="stepStatus !== 'completed'" class="gov-btn-complete" @click="handleMarkComplete">
+          标记完成
+        </button>
+        <span v-if="stepStatus === 'completed'" class="gov-status-complete">已完成</span>
         <button
           class="btn-primary"
           :disabled="exportState.disabled"
@@ -85,6 +89,10 @@ const hasSavedData = ref(false);
 const isEditing = ref(true);
 const editKey = ref(0);
 const templateText = ref(''); // 原始模板文本
+const stepStatus = ref<'not_started' | 'in_progress' | 'completed'>('not_started');
+
+// 随审计通知书自动签发的附件材料，默认即为完成状态
+const DEFAULT_COMPLETED_STEPS = ['eight_prohibitions', 'commitment_letter'];
 
 onMounted(async () => {
   // 1. 加载模板文本
@@ -97,6 +105,10 @@ onMounted(async () => {
   }
   // 4. 加载已保存的内容（覆盖模板和导入内容）
   await loadSavedContent();
+  // 5. 默认完成步骤：随通知书自动签发，始终写入完成状态（含历史记录修复），保证项目页与后续引用一致
+  if (DEFAULT_COMPLETED_STEPS.includes(props.step.key)) {
+    await markDefaultCompleted();
+  }
 });
 
 async function autoImportFromPreviousStages(): Promise<void> {
@@ -176,9 +188,35 @@ async function loadSavedContent(): Promise<void> {
           isEditing.value = false;
         }
       }
+      if (stageData?.status) {
+        stepStatus.value = stageData.status;
+      }
+      // 默认完成步骤始终显示为已完成，不受历史状态影响
+      if (DEFAULT_COMPLETED_STEPS.includes(props.step.key)) {
+        stepStatus.value = 'completed';
+      }
     }
   } catch {
     // ignore
+  }
+}
+
+/** 默认完成步骤落库完成状态（保留已保存内容，仅更新状态） */
+async function markDefaultCompleted(): Promise<void> {
+  try {
+    const res = await window.electronAPI.stages.updateData(
+      props.projectId,
+      props.step.key,
+      JSON.stringify({ content: content.value }),
+      'completed'
+    );
+    if (res.success) {
+      stepStatus.value = 'completed';
+      hasSavedData.value = true;
+      isEditing.value = false;
+    }
+  } catch (e: unknown) {
+    console.error('写入默认完成状态失败：', e);
   }
 }
 
@@ -188,15 +226,18 @@ async function handleSave(): Promise<void> {
   saveSuccess.value = false;
   try {
     const data = { content: content.value };
+    // 默认完成步骤保存内容后仍保持完成状态
+    const saveStatus = DEFAULT_COMPLETED_STEPS.includes(props.step.key) ? 'completed' : 'in_progress';
     const res = await window.electronAPI.stages.updateData(
       props.projectId,
       props.step.key,
       JSON.stringify(data),
-      'in_progress'
+      saveStatus
     );
     if (res.success) {
       hasSavedData.value = true;
       isEditing.value = false;
+      stepStatus.value = saveStatus;
       saveSuccess.value = true;
       setTimeout(() => { saveSuccess.value = false; }, 2000);
     } else {
@@ -206,6 +247,26 @@ async function handleSave(): Promise<void> {
     saveError.value = `保存失败：${(e as Error).message}`;
   } finally {
     saving.value = false;
+  }
+}
+
+async function handleMarkComplete(): Promise<void> {
+  try {
+    const res = await window.electronAPI.stages.updateData(
+      props.projectId,
+      props.step.key,
+      JSON.stringify({ content: content.value }),
+      'completed'
+    );
+    if (res.success) {
+      stepStatus.value = 'completed';
+      saveSuccess.value = true;
+      setTimeout(() => { saveSuccess.value = false; }, 2000);
+    } else {
+      alert('操作失败：' + (res.message || '未知错误'));
+    }
+  } catch (e: unknown) {
+    alert('操作失败：' + (e as Error).message);
   }
 }
 
@@ -343,6 +404,34 @@ function getStepLabel(key: string): string {
 .gov-btn-edit:hover {
   background: #ffedd5 !important;
   border-color: #f97316 !important;
+}
+
+.gov-btn-complete {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.gov-btn-complete:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  transform: translateY(-1px);
+}
+
+.gov-status-complete {
+  padding: 6px 14px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* 编辑态 textarea */

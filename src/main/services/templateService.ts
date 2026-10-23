@@ -59,6 +59,11 @@ export async function generateDocument(
   data: Record<string, unknown>,
   outputPath: string
 ): Promise<void> {
+  // 版式无损导出：严禁将导出结果写回模板目录，防止模板被覆盖损坏
+  const templateBasePath = getTemplateBasePath();
+  if (path.resolve(outputPath).startsWith(path.resolve(templateBasePath))) {
+    throw new Error(`导出路径不能指向模板目录：${templateBasePath}`);
+  }
   const templatePath = getTemplatePath(templateName);
   const content = fs.readFileSync(templatePath, 'binary');
   const zip = new PizZip(content);
@@ -98,6 +103,11 @@ export async function generateExcel(
   data: Record<string, unknown>,
   outputPath: string
 ): Promise<void> {
+  // 版式无损导出：严禁将导出结果写回模板目录，防止模板被覆盖损坏
+  const templateBasePath = getTemplateBasePath();
+  if (path.resolve(outputPath).startsWith(path.resolve(templateBasePath))) {
+    throw new Error(`导出路径不能指向模板目录：${templateBasePath}`);
+  }
   const templatePath = getTemplatePathByName(templateName);
   const XLSX = await import('xlsx');
   const wb = XLSX.readFile(templatePath);
